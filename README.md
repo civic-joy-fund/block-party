@@ -3,6 +3,8 @@
 Find a San Francisco street block and its city ID (CNN) for a block party application.
 Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 
+https://civic-joy-fund.github.io/block-party/
+
 ## Files
 
 | Path | What it is |
