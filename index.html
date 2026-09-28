@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<!-- build: v1 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Block Party: find your block</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎉</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<style>
+:root {
+  --ink: #1E2340;
+  --ink-soft: #545B7F;
+  --paper: #F4F7FF;
+  --card: #FFFFFF;
+  --line: #D6DCF0;
+  --pink: #FF3D7F;
+  --sun: #FFC53D;
+  --pool: #0EA5C6;
+  --grape: #6D4AF5;
+  --lime: #6CCB3F;
+  --pink-wash: #FFE8F0;
+  --grape-wash: #EEE9FF;
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--grape); outline-offset: 2px; }
+
+/* ---------- layout ---------- */
+.app {
+  display: grid;
+  grid-template-columns: minmax(360px, 500px) 1fr;
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas: "head map" "lookup map" "results map";
+  min-height: 100vh;
+}
+.head { grid-area: head; }
+.lookup { grid-area: lookup; }
+.results { grid-area: results; }
+.map-wrap {
+  grid-area: map;
+  position: sticky; top: 0;
+  height: 100vh; height: 100dvh;
+  align-self: start;
+  border-left: 2px solid var(--line);
+}
+.head, .lookup, .results { padding-inline: 28px; }
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas: "head" "lookup" "map" "results";
+  }
+  .map-wrap { position: relative; height: 58vh; border-left: 0; border-block: 2px solid var(--line); }
+  .head, .lookup, .results { padding-inline: 18px; }
+}
+
+/* ---------- header with bunting ---------- */
+.head { padding-top: calc(env(safe-area-inset-top, 0px) + 8px); position: relative; }
+.bunting { display: block; width: calc(100% + 56px); margin-inline: -28px; height: 64px; }
+@media (max-width: 860px) { .bunting { width: calc(100% + 36px); margin-inline: -18px; } }
+h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(44px, 7vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 6px 0 10px;
+}
+.intro { margin: 0 0 22px; color: var(--ink-soft); max-width: 40ch; }
+
+/* ---------- lookup form ---------- */
+.step { margin-bottom: 18px; }
+.step-label {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 17px; margin-bottom: 8px;
+}
+.num {
+  flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--display); font-weight: 800; font-size: 15px; color: #fff;
+}
+.num.n1 { background: var(--pink); }
+.num.n2 { background: var(--grape); }
+.num.n3 { background: var(--pool); }
+.step.is-disabled { opacity: .45; }
+.step.is-disabled input { cursor: not-allowed; }
+
+.combo { position: relative; }
+.field {
+  width: 100%; height: 56px;
+  padding: 0 46px 0 18px;
+  border: 2px solid var(--line); border-radius: var(--radius-md);
+  background: var(--card);
+  font-size: 18px;
+  transition: border-color .15s;
+}
+.field::placeholder { color: #9AA1C3; }
+.field:focus { outline: none; border-color: var(--grape); box-shadow: 0 0 0 4px var(--grape-wash); }
+.field.is-set { border-color: var(--ink); font-weight: 600; }
+.clear-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border: 0; border-radius: 50%;
+  background: transparent; cursor: pointer; font-size: 20px; color: var(--ink-soft);
+  display: none;
+}
+.clear-btn:hover { background: var(--paper); }
+.combo.has-value .clear-btn { display: block; }
+.listbox {
+  position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px);
+  margin: 0; padding: 6px; list-style: none;
+  max-height: 300px; overflow-y: auto;
+  background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius-md);
+  box-shadow: 0 10px 0 -4px var(--ink);
+  display: none;
+}
+.listbox.open { display: block; }
+.listbox li {
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+}
+.listbox li .sub { font-size: 14px; color: var(--ink-soft); white-space: nowrap; }
+.listbox li[aria-selected="true"], .listbox li:hover { background: var(--grape-wash); }
+.listbox .empty { cursor: default; color: var(--ink-soft); }
+.listbox .empty:hover { background: none; }
+
+.modes {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  padding: 5px; margin: 4px 0 18px;
+  background: #E4E9FA; border-radius: 999px;
+}
+.modes button {
+  border: 0; border-radius: 999px; padding: 10px 8px;
+  background: transparent; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--ink-soft);
+}
+.modes button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 2px 0 var(--line); }
+.hint { font-size: 14px; color: var(--ink-soft); margin: 6px 2px 0; }
+.lookup-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 22px; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--grape); }
+.link-btn { border: 0; background: none; padding: 4px 0; font-size: 14px; font-weight: 600; color: var(--grape); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- results ---------- */
+.results { padding-bottom: 40px; }
+.results[hidden] { display: none; }
+.results-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.1; margin: 8px 0 4px; letter-spacing: -0.01em; }
+.results-sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 15px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.btn {
+  border: 2px solid var(--ink); border-radius: 999px;
+  padding: 8px 16px; font-weight: 700; font-size: 15px;
+  background: var(--card); cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+  transition: transform .08s, box-shadow .08s;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.btn.primary { background: var(--sun); }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: 0 3px 0 var(--ink); }
+
+.seg-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.seg {
+  position: relative;
+  background: var(--card);
+  border: 2px solid var(--line); border-radius: var(--radius-lg);
+  padding: 16px 16px 14px 60px;
+  cursor: pointer;
+  transition: border-color .12s;
+}
+.seg:hover { border-color: #AEB6DA; }
+.seg.is-checked { border-color: var(--pink); background: linear-gradient(90deg, var(--pink-wash), var(--card) 60%); }
+.seg input[type=checkbox] {
+  position: absolute; left: 18px; top: 18px;
+  width: 26px; height: 26px; accent-color: var(--pink); cursor: pointer;
+}
+.seg-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.seg-name { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1.15; }
+.seg-between { color: var(--ink-soft); font-size: 15px; margin-top: 2px; }
+.cnn-chip {
+  flex: none; border: 0; cursor: pointer;
+  background: var(--ink); color: #fff; border-radius: 10px;
+  padding: 4px 10px; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;
+}
+.cnn-chip small { font-weight: 500; opacity: .75; margin-right: 4px; }
+.cnn-chip:hover { background: var(--grape); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag { font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--paper); border: 1.5px solid var(--line); }
+.tag.warn { background: #FFF4D6; border-color: #F2C96A; }
+.tag.info { background: #E3F7FB; border-color: #9CDCEA; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 12px 0 0; font-size: 15px; }
+.facts dt { color: var(--ink-soft); }
+.facts dd { margin: 0; font-weight: 500; }
+
+.notice {
+  border: 2px dashed var(--line); border-radius: var(--radius-lg);
+  padding: 16px 18px; color: var(--ink-soft); font-size: 15px; background: var(--card);
+}
+.foot-note { font-size: 13px; color: var(--ink-soft); margin-top: 26px; }
+.foot-note a { color: inherit; }
+
+/* ---------- map ---------- */
+#map { position: absolute; inset: 0; }
+.map-ui { position: absolute; z-index: 5; top: 12px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.map-toggle { display: flex; background: var(--card); border: 2px solid var(--ink); border-radius: 999px; padding: 3px; box-shadow: 0 3px 0 var(--ink); }
+.map-toggle button { border: 0; background: none; padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.map-toggle button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.map-tip {
+  position: absolute; z-index: 5; left: 12px; bottom: 34px; max-width: calc(100% - 24px);
+  background: rgba(255,255,255,.94); border-radius: 12px; padding: 7px 12px; font-size: 14px;
+  border: 1.5px solid var(--line);
+}
+.map-loading { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 600; color: var(--ink-soft); z-index: 4; pointer-events: none; }
+.maplibregl-popup-content { font-family: var(--body); border-radius: 12px; padding: 8px 12px; font-size: 14px; box-shadow: 0 4px 0 rgba(30,35,64,.25); }
+.maplibregl-popup-content b { font-weight: 700; }
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed; z-index: 50; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 20px); opacity: 0;
+  background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-weight: 600;
+  transition: opacity .2s, transform .2s; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <svg class="bunting" id="bunting" viewBox="0 0 600 64" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <h1 data-i18n="title">Block Party</h1>
+    <p class="intro" data-i18n="intro">Find the exact block for your street event, and get the city’s block ID (called a CNN) to include with your application.</p>
+  </header>
+
+  <section class="lookup" aria-label="Find a block">
+    <div class="step" id="step-street">
+      <label class="step-label" for="street-input"><span class="num n1">1</span><span data-i18n="streetLabel">Your street</span></label>
+      <div class="combo" id="street-combo">
+        <input class="field" id="street-input" type="text" autocomplete="off" spellcheck="false" disabled data-i18n-ph="streetPh" placeholder="Start typing, like Valencia or 24th">
+        <button class="clear-btn" type="button" aria-label="Clear">×</button>
+        <ul class="listbox" role="listbox"></ul>
+      </div>
+    </div>
+
+    <div class="modes" role="group" aria-label="How to find the block">
+      <button type="button" id="mode-cross" aria-pressed="true" data-i18n="modeCross">Between cross streets</button>
+      <button type="button" id="mode-addr" aria-pressed="false" data-i18n="modeAddr">By street address</button>
+    </div>
+
+    <div id="cross-steps">
+      <div class="step is-disabled" id="step-from">
+        <label class="step-label" for="from-input"><span class="num n2">2</span><span data-i18n="fromLabel">One cross street</span></label>
+        <div class="combo" id="from-combo">
+          <input class="field" id="from-input" type="text" autocomplete="off" spellcheck="false" disabled data-i18n-ph="crossPh" placeholder="Type or pick from the list">
+          <button class="clear-btn" type="button" aria-label="Clear">×</button>
+          <ul class="listbox" role="listbox"></ul>
+        </div>
+      </div>
+      <div class="step is-disabled" id="step-to">
+        <label class="step-label" for="to-input"><span class="num n3">3</span><span data-i18n="toLabel">The other cross street</span></label>
+        <div class="combo" id="to-combo">
+          <input class="field" id="to-input" type="text" autocomplete="off" spellcheck="false" disabled data-i18n-ph="crossPh" placeholder="Type or pick from the list">
+          <button class="clear-btn" type="button" aria-label="Clear">×</button>
+          <ul class="listbox" role="listbox"></ul>
+        </div>
+        <p class="hint" data-i18n="toHint">Closest cross streets are listed first. Pick one further away to include several blocks.</p>
+      </div>
+    </div>
+
+    <div id="addr-steps" hidden>
+      <div class="step is-disabled" id="step-num">
+        <label class="step-label" for="num-input"><span class="num n2">2</span><span data-i18n="numLabel">Street number</span></label>
+        <div class="combo">
+          <input class="field" id="num-input" type="text" inputmode="numeric" autocomplete="off" disabled data-i18n-ph="numPh" placeholder="For example, 3450">
+        </div>
+      </div>
+    </div>
+
+    <div class="lookup-foot">
+      <label class="check"><input type="checkbox" id="search-all"><span data-i18n="searchAll">Include retired, freeway, and paper streets</span></label>
+      <button type="button" class="link-btn" id="start-over" data-i18n="startOver">Start over</button>
+    </div>
+  </section>
+
+  <div class="map-wrap">
+    <div id="map" role="region" aria-label="Map"></div>
+    <div class="map-loading" id="map-loading" data-i18n="loading">Loading streets…</div>
+    <div class="map-ui">
+      <div class="map-toggle" role="group" aria-label="Map style">
+        <button type="button" id="bm-map" aria-pressed="true" data-i18n="bmMap">Map</button>
+        <button type="button" id="bm-sat" aria-pressed="false" data-i18n="bmSat">Satellite</button>
+      </div>
+    </div>
+    <div class="map-tip" data-i18n="mapTip">Tap a street on the map to add it to your list or take it off.</div>
+  </div>
+
+  <section class="results" id="results" hidden aria-live="polite">
+    <div class="results-head">
+      <h2 id="results-title"></h2>
+    </div>
+    <p class="results-sub" id="results-sub"></p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="copy-csv" data-i18n="copyCsv">Copy as CSV</button>
+      <button type="button" class="btn" id="copy-json" data-i18n="copyJson">Copy as JSON</button>
+      <button type="button" class="btn" id="copy-link" data-i18n="copyLink">Copy link</button>
+    </div>
+    <ul class="seg-list" id="seg-list"></ul>
+    <p class="foot-note" id="foot-note"></p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const _BUILD_VERSION = 'v1';
+
+/* =====================================================================
+   CONFIG
+   ===================================================================== */
+const CONFIG = {
+  PROTOMAPS_KEY: 'ffc24a4325d458ce',
+  styleUrl: key => `https://api.protomaps.com/styles/v5/light/en.json?key=${key}`,
+  SATELLITE_TILES: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  DATA_URL: 'data/streets.json',
+  // Layers people can hold an event on. Everything else (freeways, paper streets, etc.)
+  // only shows up with "Include retired, freeway, and paper streets" checked.
+  PUBLIC_LAYERS: new Set([
+    'STREETS', 'STREETS_TI', 'STREETS_HUNTERSP', 'STREETS_YBI', 'STREETS_PEDESTRI',
+    'UPROW', 'PRIVATE', 'PARKS', 'PARKS_NPS_PRESIDIO', 'PARKS_NPS_FTMASON'
+  ]),
+  SF_BOUNDS: [[-122.52, 37.70], [-122.35, 37.835]],
+};
+
+/* =====================================================================
+   I18N  (add es / zh by copying the en block)
+   ===================================================================== */
+const I18N = {
+  en: {
+    title: 'Block Party',
+    intro: 'Find the exact block for your street event, and get the city’s block ID (called a CNN) to include with your application.',
+    streetLabel: 'Your street',
+    streetPh: 'Start typing, like Valencia or 24th',
+    modeCross: 'Between cross streets',
+    modeAddr: 'By street address',
+    fromLabel: 'One cross street',
+    toLabel: 'The other cross street',
+    crossPh: 'Type or pick from the list',
+    toHint: 'Closest cross streets are listed first. Pick one further away to include several blocks.',
+    numLabel: 'Street number',
+    numPh: 'For example, 3450',
+    searchAll: 'Include retired, freeway, and paper streets',
+    startOver: 'Start over',
+    loading: 'Loading streets…',
+    loadFailed: 'Street data couldn’t load. Check that data/streets.json is in the repo, then reload.',
+    bmMap: 'Map', bmSat: 'Satellite',
+    mapTip: 'Tap a street on the map to add it to your list or take it off.',
+    copyCsv: 'Copy as CSV', copyJson: 'Copy as JSON', copyLink: 'Copy link',
+    copiedCsv: 'Copied as CSV', copiedJson: 'Copied as JSON', copiedLink: 'Link copied', copiedCnn: 'Copied CNN {cnn}',
+    noMatch: 'No streets match “{q}”',
+    ftAway: 'about {ft} ft',
+    blocksTouching: 'Blocks on {street} at {cross}',
+    blocksBetween: '{street} between {a} and {b}',
+    blocksAtAddress: 'Blocks with {num} {street}',
+    closestTo: 'No block lists {num} {street}. These are the closest.',
+    linkedBlocks: 'Linked blocks',
+    aroundIntersection: 'Blocks around {a} and {b}',
+    noIntersection: '{a} and {b} don’t meet. Showing {a}.',
+    subPick: 'Check each block that’s part of your event. {n} of {total} checked.',
+    subAll: '{n} of {total} checked.',
+    between: '{a} to {b}',
+    addrLabel: 'Addresses', district: 'Supervisor district', zip: 'ZIP code',
+    nhood: 'Neighborhood', anhood: 'Analysis neighborhood', layerLabel: 'Street type',
+    noAddr: 'No addresses on this block',
+    odd: 'Odd', even: 'Even',
+    sideOf: '{side} side',
+    divided: 'Divided street, {side} side',
+    retired: 'Retired', notAccepted: 'Not city-maintained', oneway: 'One-way',
+    layer_PRIVATE: 'Private street', layer_PARKS_NPS_PRESIDIO: 'Presidio', layer_PARKS_NPS_FTMASON: 'Fort Mason',
+    layer_STREETS_PEDESTRI: 'Pedestrian path', layer_PARKS: 'Park road', layer_FREEWAYS: 'Freeway',
+    layer_PAPER: 'Paper street', layer_PAPER_FWYS: 'Paper freeway', layer_PAPER_WATER: 'Paper street (water)',
+    layer_UPROW: 'Unaccepted right-of-way', layer_PSEUDO: 'Pseudo street', layer_PRIVATE_PARKING: 'Private parking',
+    added: 'Added {name}', removed: 'Took off {name}',
+    deadEnd: 'Dead end', deadEndDir: 'Dead end ({dir})', midBlock: 'Mid-block',
+    north: 'north', south: 'south', east: 'east', west: 'west',
+    dataNote: 'Street data from DataSF, Streets – Active and Retired, updated {date}.',
+    typeMore: 'Keep typing to see more streets',
+  }
+};
+let LANG = 'en';
+function t(key, vars = {}) {
+  const s = (I18N[LANG] && I18N[LANG][key]) ?? I18N.en[key] ?? key;
+  return s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+}
+function applyI18n() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => el.placeholder = t(el.dataset.i18nPh));
+}
+
+/* =====================================================================
+   LOGIC  (pure functions; no DOM)
+   ===================================================================== */
+// <logic>
+const Logic = (() => {
+  const SCALE = 1e5;
+  const M_PER_DEG = 111320;
+  const COS_LAT = Math.cos(37.76 * Math.PI / 180);
+
+  /* ---- names ---- */
+  const DIRS = { NORTH: 'north', SOUTH: 'south', EAST: 'east', WEST: 'west' };
+  function prettyName(raw) {
+    if (!raw) return '';
+    const s = raw.trim();
+    if (/^MID ?BLOCK$/i.test(s)) return t('midBlock');
+    const end = s.match(/^END\b:?\s*(.*)$/i);
+    if (end) {
+      const rest = end[1].trim().toUpperCase();
+      if (!rest) return t('deadEnd');
+      if (DIRS[rest]) return t('deadEndDir', { dir: t(DIRS[rest]) });
+      return t('deadEndDir', { dir: rest.toLowerCase().replace(/-/g, '–') });
+    }
+    return s.split(/\s+/).map(prettyToken).join(' ');
+  }
+  const IRISH_O = { OFARRELL: "O'Farrell", OSHAUGHNESSY: "O'Shaughnessy", OREILLY: "O'Reilly", OLORAN: "O'Loran" };
+  function prettyToken(tok) {
+    if (IRISH_O[tok.toUpperCase()]) return IRISH_O[tok.toUpperCase()];
+    const ord = tok.match(/^0*(\d+)(ST|ND|RD|TH)$/i);
+    if (ord) return ord[1] + ord[2].toLowerCase();
+    if (/\d/.test(tok)) return tok.toUpperCase();
+    return tok.toLowerCase().split(/([-'])/).map(p => {
+      if (p === '-' || p === "'") return p;
+      if (/^mc./.test(p)) return 'Mc' + p[2].toUpperCase() + p.slice(3);
+      return p.charAt(0).toUpperCase() + p.slice(1);
+    }).join('').replace(/'S\b/g, "'s");
+  }
+
+  /* ---- search normalization ---- */
+  const ONES = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth'];
+  const TEENS = ['tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth'];
+  const TENS_ORD = { 2: 'twentieth', 3: 'thirtieth', 4: 'fortieth' };
+  const TENS = { 2: 'twenty', 3: 'thirty', 4: 'forty' };
+  const ORD_WORDS = {};
+  function suffix(n) { const m = n % 100; if (m >= 11 && m <= 13) return 'th'; return ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th'; }
+  for (let n = 1; n <= 49; n++) {
+    let w;
+    if (n < 10) w = ONES[n];
+    else if (n < 20) w = TEENS[n - 10];
+    else if (n % 10 === 0) w = TENS_ORD[n / 10];
+    else w = TENS[Math.floor(n / 10)] + ONES[n % 10];
+    ORD_WORDS[w] = n + suffix(n);
+  }
+  function normTokens(s) {
+    return (s || '').toLowerCase()
+      .replace(/['’.]/g, '')
+      .replace(/(twenty|thirty|forty)[\s-]+/g, '$1')
+      .split(/[^a-z0-9]+/).filter(Boolean)
+      .map(tok => ORD_WORDS[tok] || tok.replace(/^0+(?=\d)/, ''));
+  }
+  const ALIASES = { st: ['saint'], mt: ['mount'], ft: ['fort'], av: ['ave'], pt: ['point'] };
+  function tokenMatches(q, nt) {
+    if (nt.startsWith(q)) return true;
+    return (ALIASES[q] || []).some(a => nt === a);
+  }
+  // every query token must prefix-match a different name token
+  function matchScore(query, entry) {
+    const qt = normTokens(query);
+    if (!qt.length) return -1;
+    const used = new Set();
+    for (const q of qt) {
+      let hit = -1;
+      for (let i = 0; i < entry.tokens.length; i++) {
+        if (!used.has(i) && tokenMatches(q, entry.tokens[i])) { hit = i; break; }
+      }
+      if (hit < 0) return -1;
+      used.add(hit);
+    }
+    const joined = qt.join(' ');
+    if (entry.tokens.join(' ').startsWith(joined)) return 0;
+    if (used.has(0)) return 1;
+    return 2;
+  }
+
+  /* ---- geometry ---- */
+  function decodeGeom(arr) {
+    const out = [];
+    let x = 0, y = 0;
+    for (let i = 0; i < arr.length; i += 2) {
+      if (i === 0) { x = arr[0]; y = arr[1]; } else { x += arr[i]; y += arr[i + 1]; }
+      out.push([x / SCALE, y / SCALE]);
+    }
+    return out;
+  }
+  function meters(a, b) {
+    const dx = (b[0] - a[0]) * M_PER_DEG * COS_LAT, dy = (b[1] - a[1]) * M_PER_DEG;
+    return Math.hypot(dx, dy);
+  }
+  function lineLength(c) { let d = 0; for (let i = 1; i < c.length; i++) d += meters(c[i - 1], c[i]); return d; }
+  function centroid(c) {
+    let x = 0, y = 0; for (const p of c) { x += p[0]; y += p[1]; }
+    return [x / c.length, y / c.length];
+  }
+  function compass(dx, dy) { // dx already scaled to meters
+    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'east' : 'west';
+    return dy > 0 ? 'north' : 'south';
+  }
+  // which compass side is the "left" side of the segment (direction = first -> last point)
+  function leftSide(c) {
+    const a = c[0], b = c[c.length - 1];
+    const dx = (b[0] - a[0]) * COS_LAT, dy = b[1] - a[1];
+    return compass(-dy, dx);
+  }
+  const OPPOSITE = { north: 'south', south: 'north', east: 'west', west: 'east' };
+
+  /* ---- data model ---- */
+  let DB = null;
+  function load(raw) {
+    if (raw.v !== 1) throw new Error('Unsupported data version ' + raw.v);
+    const S = raw.strings;
+    const F = Object.fromEntries(raw.seg_fields.map((f, i) => [f, i]));
+    const segs = raw.segs.map(r => {
+      const coords = decodeGeom(r[F.geom]);
+      const layer = S[r[F.layer]];
+      const flags = r[F.flags];
+      return {
+        cnn: r[F.cnn], street: S[r[F.streetname]],
+        f: S[r[F.f_st]], t: S[r[F.t_st]],
+        lf: [r[F.lf_fadd], r[F.lf_toadd]], rt: [r[F.rt_fadd], r[F.rt_toadd]],
+        fn: r[F.f_node_cnn], tn: r[F.t_node_cnn],
+        layer, active: !!(flags & 1), accepted: !!(flags & 2),
+        nhood: S[r[F.nhood]], anhood: S[r[F.analysis_neighborhood]],
+        sup: r[F.supervisor_district] || '', zip: S[r[F.zip_code]],
+        oneway: S[r[F.oneway]], classcode: r[F.classcode], dropped: S[r[F.date_dropped]],
+        coords, len: lineLength(coords),
+        isPublic: !!(flags & 1) && CONFIG.PUBLIC_LAYERS.has(layer),
+        partners: [], dividedSide: '',
+      };
+    });
+    const byCnn = new Map(segs.map(s => [s.cnn, s]));
+    const byStreet = new Map();
+    for (const s of segs) {
+      if (!byStreet.has(s.street)) byStreet.set(s.street, []);
+      byStreet.get(s.street).push(s);
+    }
+    // divided streets: two segments on the same street sharing the same pair of cross streets
+    const pairKey = new Map();
+    for (const s of segs) {
+      const k = s.street + '|' + [s.f, s.t].sort().join('|');
+      if (!pairKey.has(k)) pairKey.set(k, []);
+      pairKey.get(k).push(s);
+    }
+    for (const group of pairKey.values()) {
+      if (group.length < 2) continue;
+      const cs = group.map(s => centroid(s.coords));
+      const all = centroid(cs);
+      group.forEach((s, i) => {
+        s.partners = group.filter(o => o !== s).map(o => o.cnn);
+        s.dividedSide = compass((cs[i][0] - all[0]) * COS_LAT, cs[i][1] - all[1]);
+      });
+    }
+    const NF = Object.fromEntries(raw.node_fields.map((f, i) => [f, i]));
+    const nodes = new Map(raw.nodes.map(n => [n[NF.cnn], {
+      cnn: n[NF.cnn], x: n[NF.x] / SCALE, y: n[NF.y] / SCALE, streets: n[NF.streets].map(i => S[i])
+    }]));
+    const segsAtNode = new Map();
+    for (const s of segs) for (const n of [s.fn, s.tn]) {
+      if (!segsAtNode.has(n)) segsAtNode.set(n, []);
+      segsAtNode.get(n).push(s);
+    }
+    DB = { segs, byCnn, byStreet, nodes, segsAtNode, dataAsOf: raw.data_as_of, searchAll: false, index: [] };
+    rebuildIndex();
+    return DB;
+  }
+  const eligible = s => DB.searchAll || s.isPublic;
+  function setSearchAll(v) { DB.searchAll = v; rebuildIndex(); }
+  function rebuildIndex() {
+    DB.index = [];
+    for (const [name, list] of DB.byStreet) {
+      const n = list.filter(eligible).length;
+      if (!n) continue;
+      const pretty = prettyName(name);
+      // O'Farrell also matches "o far"
+      const extra = /'/.test(pretty) ? normTokens(pretty.replace(/'/g, ' ')) : [];
+      DB.index.push({ name, pretty, tokens: [...normTokens(pretty), ...extra], count: n });
+    }
+    DB.index.sort((a, b) => a.pretty.localeCompare(b.pretty, 'en', { numeric: true }));
+  }
+  function searchStreets(q, limit = 60) {
+    const hits = [];
+    const q2 = q.replace(/\bo\s+(?=\w)/gi, 'o'); // "o far" -> "ofar"
+    for (const e of DB.index) {
+      const sc = Math.max(matchScore(q, e), q2 !== q ? matchScore(q2, e) : -1);
+      if (sc >= 0) hits.push([sc, e]);
+    }
+    hits.sort((a, b) => a[0] - b[0] || a[1].tokens.length - b[1].tokens.length || a[1].pretty.localeCompare(b[1].pretty, 'en', { numeric: true }));
+    return { total: hits.length, items: hits.slice(0, limit).map(h => h[1]) };
+  }
+  function resolveStreet(q) { const r = searchStreets(q, 1); return r.items[0] ? r.items[0].name : null; }
+  function streetSegs(name) { return (DB.byStreet.get(name) || []).filter(eligible); }
+
+  /* ---- graph along one street ---- */
+  function dijkstra(segs, sources) {
+    const adj = new Map();
+    const add = (a, b, w) => { if (!adj.has(a)) adj.set(a, []); adj.get(a).push([b, w]); };
+    for (const s of segs) { add(s.fn, s.tn, s.len); add(s.tn, s.fn, s.len); }
+    const dist = new Map();
+    const queue = [];
+    for (const n of sources) { dist.set(n, 0); queue.push([0, n]); }
+    while (queue.length) {
+      let bi = 0;
+      for (let i = 1; i < queue.length; i++) if (queue[i][0] < queue[bi][0]) bi = i;
+      const [d, n] = queue.splice(bi, 1)[0];
+      if (d > dist.get(n)) continue;
+      for (const [m, w] of adj.get(n) || []) {
+        const nd = d + w;
+        if (nd < (dist.has(m) ? dist.get(m) : Infinity)) { dist.set(m, nd); queue.push([nd, m]); }
+      }
+    }
+    return dist;
+  }
+  function crossNodes(segs, name) {
+    const out = new Set();
+    for (const s of segs) { if (s.f === name) out.add(s.fn); if (s.t === name) out.add(s.tn); }
+    return out;
+  }
+  function crossNamesWithNodes(segs) {
+    const m = new Map();
+    for (const s of segs) {
+      for (const [name, node] of [[s.f, s.fn], [s.t, s.tn]]) {
+        if (!name) continue;
+        if (!m.has(name)) m.set(name, new Set());
+        m.get(name).add(node);
+      }
+    }
+    return m;
+  }
+  const minAddr = s => Math.min(...[...s.lf, ...s.rt].filter(n => n > 0), Infinity);
+  // cross streets in order along the street
+  function crossStreetsInOrder(street) {
+    const segs = streetSegs(street);
+    if (!segs.length) return [];
+    const start = [...segs].sort((a, b) => minAddr(a) - minAddr(b) || a.cnn - b.cnn)[0];
+    // start from whichever end of the first segment has the lower address
+    const startNode = start.lf[0] <= start.lf[1] ? start.fn : start.tn;
+    const dist = dijkstra(segs, [startNode]);
+    const names = crossNamesWithNodes(segs);
+    const rows = [];
+    let fallback = 1e9;
+    for (const [name, nodes] of names) {
+      let d = Infinity;
+      for (const n of nodes) if (dist.has(n)) d = Math.min(d, dist.get(n));
+      rows.push({ name, d: isFinite(d) ? d : fallback++ });
+    }
+    rows.sort((a, b) => a.d - b.d);
+    return rows.map(r => r.name);
+  }
+  // other cross streets reachable from `from`, nearest first, with distance in meters
+  function crossStreetsFrom(street, from) {
+    const segs = streetSegs(street);
+    const dist = dijkstra(segs, crossNodes(segs, from));
+    const rows = [];
+    for (const [name, nodes] of crossNamesWithNodes(segs)) {
+      if (name === from) continue;
+      let d = Infinity;
+      for (const n of nodes) if (dist.has(n)) d = Math.min(d, dist.get(n));
+      if (isFinite(d) && d > 0) rows.push({ name, meters: d });
+    }
+    rows.sort((a, b) => a.meters - b.meters);
+    return rows;
+  }
+  function segsTouching(street, cross) {
+    return streetSegs(street).filter(s => s.f === cross || s.t === cross);
+  }
+  // every segment on a near-shortest route between two cross streets
+  // (catches both halves of divided streets and alley-split blocks)
+  function segsBetween(street, a, b) {
+    const segs = streetSegs(street);
+    const A = crossNodes(segs, a), B = crossNodes(segs, b);
+    const dA = dijkstra(segs, A), dB = dijkstra(segs, B);
+    let D = Infinity;
+    for (const n of B) if (dA.has(n)) D = Math.min(D, dA.get(n));
+    if (!isFinite(D)) return [];
+    const tol = D * 1.3 + 25;
+    const g = (m, n) => (m.has(n) ? m.get(n) : Infinity);
+    return segs.filter(s => {
+      const via = Math.min(g(dA, s.fn) + s.len + g(dB, s.tn), g(dA, s.tn) + s.len + g(dB, s.fn));
+      return via <= tol;
+    });
+  }
+
+  /* ---- addresses ---- */
+  const inRange = (n, [a, b]) => a > 0 && b > 0 && n >= Math.min(a, b) && n <= Math.max(a, b) && (a % 2 === n % 2 || b % 2 === n % 2);
+  function segsAtAddress(street, num) {
+    const segs = streetSegs(street);
+    const exact = segs.filter(s => inRange(num, s.lf) || inRange(num, s.rt));
+    if (exact.length) return { exact: true, segs: exact };
+    const gap = s => Math.min(...[s.lf, s.rt].filter(r => r[0] > 0 || r[1] > 0)
+      .map(([a, b]) => num < Math.min(a, b) ? Math.min(a, b) - num : num > Math.max(a, b) ? num - Math.max(a, b) : 0), Infinity);
+    const near = segs.filter(s => isFinite(gap(s))).sort((x, y) => gap(x) - gap(y)).slice(0, 2);
+    return { exact: false, segs: near };
+  }
+  // describe the two sides: [{parity, from, to, side}]
+  function addressSides(s) {
+    const left = leftSide(s.coords);
+    const out = [];
+    for (const [range, side] of [[s.lf, left], [s.rt, OPPOSITE[left]]]) {
+      const [a, b] = range;
+      if (!a && !b) continue;
+      const lo = Math.min(a, b), hi = Math.max(a, b);
+      out.push({ parity: (lo || hi) % 2 ? 'odd' : 'even', from: lo, to: hi, side });
+    }
+    return out;
+  }
+
+  /* ---- intersections (for #street=a,b) ---- */
+  function intersectionNodes(a, b) {
+    const out = [];
+    for (const n of DB.nodes.values()) if (n.streets.includes(a) && n.streets.includes(b)) out.push(n);
+    return out;
+  }
+  function segsAroundNodes(nodes, streets) {
+    const set = new Map();
+    for (const n of nodes) for (const s of DB.segsAtNode.get(n.cnn) || [])
+      if (streets.includes(s.street) && eligible(s)) set.set(s.cnn, s);
+    return [...set.values()];
+  }
+  // cross streets drawn for context: other streets meeting the result's endpoints, plus one more segment along each
+  function contextSegs(resultSegs) {
+    const inResult = new Set(resultSegs.map(s => s.cnn));
+    const streetsInResult = new Set(resultSegs.map(s => s.street));
+    const nodes = new Set(resultSegs.flatMap(s => [s.fn, s.tn]));
+    const out = new Map();
+    for (const n of nodes) for (const s of DB.segsAtNode.get(n) || []) {
+      if (inResult.has(s.cnn) || streetsInResult.has(s.street) || !eligible(s)) continue;
+      out.set(s.cnn, s);
+      const far = s.fn === n ? s.tn : s.fn;
+      for (const s2 of DB.segsAtNode.get(far) || []) if (s2.street === s.street && eligible(s2)) out.set(s2.cnn, s2);
+    }
+    return [...out.values()];
+  }
+
+  return {
+    load, prettyName, normTokens, searchStreets, resolveStreet, setSearchAll, streetSegs,
+    crossStreetsInOrder, crossStreetsFrom, segsTouching, segsBetween, segsAtAddress, addressSides,
+    intersectionNodes, segsAroundNodes, contextSegs, eligible: s => eligible(s),
+    get db() { return DB; },
+  };
+})();
+// </logic>
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const P = s => Logic.prettyName(s);
+
+const state = {
+  street: null, mode: 'cross', from: null, to: null, num: '',
+  results: [],            // segment objects shown as cards
+  checked: new Set(),     // cnns
+  title: '', note: '',
+  focusNode: null,        // intersection node to mark on the map
+};
+
+/* ---------- toast & clipboard ---------- */
+let toastTimer;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  toast(msg);
+}
+
+/* ---------- combobox ---------- */
+function combobox(root, { getOptions, onSelect, onClear, showAllOnFocus = false }) {
+  const input = root.querySelector('input');
+  const list = root.querySelector('.listbox');
+  const clear = root.querySelector('.clear-btn');
+  const id = input.id + '-list';
+  list.id = id;
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-controls', id);
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-expanded', 'false');
+  let opts = [], active = -1, chosen = null;
+
+  function open() { list.classList.add('open'); input.setAttribute('aria-expanded', 'true'); }
+  function close() { list.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); active = -1; }
+  function render() {
+    const res = getOptions(input.value);
+    opts = res.items;
+    if (!opts.length) {
+      list.innerHTML = input.value.trim() ? `<li class="empty">${esc(t('noMatch', { q: input.value.trim() }))}</li>` : '';
+    } else {
+      list.innerHTML = opts.map((o, i) =>
+        `<li role="option" id="${id}-${i}" data-i="${i}" aria-selected="false"><span>${esc(o.label)}</span>${o.sub ? `<span class="sub">${esc(o.sub)}</span>` : ''}</li>`
+      ).join('') + (res.more ? `<li class="empty">${esc(t('typeMore'))}</li>` : '');
+    }
+    active = -1;
+    list.innerHTML ? open() : close();
+  }
+  function highlight(i) {
+    const items = list.querySelectorAll('[role=option]');
+    items.forEach(li => li.setAttribute('aria-selected', 'false'));
+    active = i;
+    if (items[i]) {
+      items[i].setAttribute('aria-selected', 'true');
+      items[i].scrollIntoView({ block: 'nearest' });
+      input.setAttribute('aria-activedescendant', items[i].id);
+    }
+  }
+  function choose(i) {
+    const o = opts[i]; if (!o) return;
+    set(o.value, o.label); close(); onSelect(o.value);
+  }
+  function set(value, label) {
+    chosen = value;
+    input.value = label ?? '';
+    input.classList.toggle('is-set', value != null);
+    root.classList.toggle('has-value', !!input.value);
+  }
+  input.addEventListener('input', () => {
+    root.classList.toggle('has-value', !!input.value);
+    if (chosen != null) { chosen = null; input.classList.remove('is-set'); }
+    render();
+  });
+  input.addEventListener('focus', () => { if (showAllOnFocus || input.value) render(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!list.classList.contains('open')) render(); highlight(Math.min(active + 1, opts.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(Math.max(active - 1, 0)); }
+    else if (e.key === 'Enter') { if (list.classList.contains('open')) { e.preventDefault(); choose(active >= 0 ? active : 0); } }
+    else if (e.key === 'Escape') close();
+  });
+  input.addEventListener('blur', () => setTimeout(() => {
+    close();
+    // accept a typed value when it exactly matches one option
+    if (chosen == null && input.value.trim()) {
+      const exact = getOptions(input.value).items.filter(o => o.label.toLowerCase() === input.value.trim().toLowerCase());
+      if (exact.length === 1) { set(exact[0].value, exact[0].label); onSelect(exact[0].value); }
+    }
+  }, 150));
+  list.addEventListener('mousedown', e => e.preventDefault());
+  list.addEventListener('click', e => { const li = e.target.closest('[role=option]'); if (li) choose(+li.dataset.i); });
+  clear.addEventListener('click', () => { set(null, ''); onClear && onClear(); input.focus(); });
+
+  return {
+    set,
+    enable(on) { input.disabled = !on; root.closest('.step').classList.toggle('is-disabled', !on); },
+    get value() { return chosen; },
+  };
+}
+
+let streetBox, fromBox, toBox;
+function setupForm() {
+  streetBox = combobox($('street-combo'), {
+    getOptions: q => {
+      if (!q.trim()) return { items: [] };
+      const r = Logic.searchStreets(q, 60);
+      return { items: r.items.map(e => ({ value: e.name, label: e.pretty })), more: r.total > r.items.length };
+    },
+    onSelect: name => selectStreet(name),
+    onClear: () => startOver(),
+  });
+  fromBox = combobox($('from-combo'), {
+    showAllOnFocus: true,
+    getOptions: q => ({ items: filterNames(Logic.crossStreetsInOrder(state.street), q).map(n => ({ value: n, label: P(n) })) }),
+    onSelect: name => selectFrom(name),
+    onClear: () => { state.from = state.to = null; toBox.set(null, ''); toBox.enable(false); showStreetOverview(); },
+  });
+  toBox = combobox($('to-combo'), {
+    showAllOnFocus: true,
+    getOptions: q => {
+      const rows = Logic.crossStreetsFrom(state.street, state.from);
+      const keep = new Set(filterNames(rows.map(r => r.name), q));
+      return { items: rows.filter(r => keep.has(r.name)).map(r => ({ value: r.name, label: P(r.name), sub: t('ftAway', { ft: roundFt(r.meters) }) })) };
+    },
+    onSelect: name => selectTo(name),
+    onClear: () => { state.to = null; selectFrom(state.from); },
+  });
+
+  $('mode-cross').addEventListener('click', () => setMode('cross'));
+  $('mode-addr').addEventListener('click', () => setMode('addr'));
+  let numTimer;
+  $('num-input').addEventListener('input', e => {
+    const v = e.target.value.replace(/\D/g, '');
+    e.target.value = v;
+    clearTimeout(numTimer);
+    numTimer = setTimeout(() => lookupAddress(v), 250);
+  });
+  $('search-all').addEventListener('change', e => {
+    Logic.setSearchAll(e.target.checked);
+    refreshMapFilter();
+    rerunLookup();
+  });
+  $('start-over').addEventListener('click', () => { startOver(); $('street-input').focus(); });
+  $('copy-csv').addEventListener('click', () => copyText(toCSV(checkedSegs()), t('copiedCsv')));
+  $('copy-json').addEventListener('click', () => copyText(JSON.stringify(checkedSegs().map(record), null, 2), t('copiedJson')));
+  $('copy-link').addEventListener('click', () => copyText(linkFor(checkedSegs()), t('copiedLink')));
+}
+function filterNames(names, q) {
+  const qt = Logic.normTokens(q);
+  if (!qt.length) return names;
+  return names.filter(n => {
+    const nt = Logic.normTokens(P(n));
+    return qt.every(x => nt.some(y => y.startsWith(x)));
+  });
+}
+const roundFt = m => { const ft = m * 3.28084; return ft < 1000 ? Math.round(ft / 10) * 10 : Math.round(ft / 50) * 50; };
+
+/* ---------- flow ---------- */
+function startOver() {
+  Object.assign(state, { street: null, from: null, to: null, num: '', results: [], title: '', note: '', focusNode: null });
+  state.checked.clear();
+  streetBox.set(null, '');
+  fromBox.set(null, ''); toBox.set(null, ''); $('num-input').value = '';
+  fromBox.enable(false); toBox.enable(false); enableNum(false);
+  render(); writeHash();
+  resetView();
+}
+function enableNum(on) { $('num-input').disabled = !on; $('step-num').classList.toggle('is-disabled', !on); }
+function setMode(mode) {
+  state.mode = mode;
+  $('mode-cross').setAttribute('aria-pressed', mode === 'cross');
+  $('mode-addr').setAttribute('aria-pressed', mode === 'addr');
+  $('cross-steps').hidden = mode !== 'cross';
+  $('addr-steps').hidden = mode !== 'addr';
+  rerunLookup();
+}
+function selectStreet(name) {
+  state.street = name; state.from = state.to = null; state.focusNode = null;
+  streetBox.set(name, P(name));
+  fromBox.set(null, ''); toBox.set(null, '');
+  fromBox.enable(true); toBox.enable(false); enableNum(true);
+  showStreetOverview();
+  if (state.mode === 'addr' && $('num-input').value) lookupAddress($('num-input').value);
+}
+function showStreetOverview() {
+  setResults([], '', '');
+  drawStreet(Logic.streetSegs(state.street));
+  fitSegs(Logic.streetSegs(state.street));
+  writeHash();
+}
+function selectFrom(name) {
+  state.from = name; state.to = null;
+  fromBox.set(name, P(name)); toBox.set(null, ''); toBox.enable(true);
+  const segs = Logic.segsTouching(state.street, name);
+  setResults(segs, t('blocksTouching', { street: P(state.street), cross: P(name) }), 'pick', []);
+  fitSegs(segs);
+}
+function selectTo(name) {
+  state.to = name;
+  toBox.set(name, P(name));
+  const segs = Logic.segsBetween(state.street, state.from, name);
+  setResults(segs, t('blocksBetween', { street: P(state.street), a: P(state.from), b: P(name) }), 'all');
+  fitSegs(segs);
+}
+function lookupAddress(v) {
+  state.num = v;
+  if (!state.street || !v) { if (state.street) showStreetOverview(); return; }
+  const num = parseInt(v, 10);
+  const r = Logic.segsAtAddress(state.street, num);
+  const title = r.exact ? t('blocksAtAddress', { num, street: P(state.street) }) : t('closestTo', { num, street: P(state.street) });
+  setResults(r.segs, title, r.exact ? 'all' : 'pick', r.exact ? undefined : []);
+  fitSegs(r.segs.length ? r.segs : Logic.streetSegs(state.street));
+}
+function rerunLookup() {
+  if (!state.street) return render();
+  if (state.mode === 'addr') return state.num ? lookupAddress(state.num) : showStreetOverview();
+  if (state.to) return selectTo(state.to);
+  if (state.from) return selectFrom(state.from);
+  showStreetOverview();
+}
+// checkedCnns: undefined = check all
+function setResults(segs, title, kind, checkedCnns) {
+  state.results = segs;
+  state.title = title; state.kind = kind;
+  state.checked = new Set(checkedCnns ?? segs.map(s => s.cnn));
+  render(); writeHash();
+}
+function checkedSegs() { return state.results.filter(s => state.checked.has(s.cnn)); }
+
+/* ---------- results rendering ---------- */
+function render() {
+  const box = $('results');
+  const segs = state.results;
+  box.hidden = !segs.length && !state.title;
+  $('results-title').textContent = state.title;
+  const n = state.checked.size;
+  $('results-sub').textContent = state.kind === 'pick' ? t('subPick', { n, total: segs.length }) : t('subAll', { n, total: segs.length });
+  ['copy-csv', 'copy-json', 'copy-link'].forEach(id => $(id).disabled = !n);
+  $('seg-list').innerHTML = segs.map(cardHTML).join('');
+  const d = Logic.db && Logic.db.dataAsOf;
+  $('foot-note').textContent = d ? t('dataNote', { date: d.slice(0, 10) }) : '';
+  drawResults();
+}
+function cardHTML(s) {
+  const on = state.checked.has(s.cnn);
+  const tags = [];
+  if (s.partners.length) tags.push(['info', t('divided', { side: t(s.dividedSide) })]);
+  if (!s.active) tags.push(['warn', t('retired') + (s.dropped ? ` ${s.dropped}` : '')]);
+  if (!s.accepted) tags.push(['', t('notAccepted')]);
+  if (s.layer !== 'STREETS' && I18N.en['layer_' + s.layer]) tags.push(['', t('layer_' + s.layer)]);
+  if (s.oneway === 'F' || s.oneway === 'T') tags.push(['', t('oneway')]);
+  const sides = Logic.addressSides(s);
+  const addr = sides.length
+    ? sides.map(x => `${t(x.parity)} ${x.from}–${x.to}, ${t('sideOf', { side: t(x.side) })}`).join('<br>')
+    : t('noAddr');
+  return `<li class="seg ${on ? 'is-checked' : ''}" data-cnn="${s.cnn}">
+    <input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(P(s.street))} ${esc(P(s.f))} – ${esc(P(s.t))}">
+    <div class="seg-top">
+      <div><div class="seg-name">${esc(P(s.street))}</div>
+      <div class="seg-between">${esc(t('between', { a: P(s.f), b: P(s.t) }))}</div></div>
+      <button type="button" class="cnn-chip" data-copy="${s.cnn}" title="Copy CNN"><small>CNN</small>${s.cnn}</button>
+    </div>
+    ${tags.length ? `<div class="tags">${tags.map(([c, x]) => `<span class="tag ${c}">${esc(x)}</span>`).join('')}</div>` : ''}
+    <dl class="facts">
+      <dt>${esc(t('addrLabel'))}</dt><dd>${addr}</dd>
+      <dt>${esc(t('district'))}</dt><dd>${esc(s.sup)}</dd>
+      <dt>${esc(t('zip'))}</dt><dd>${esc(s.zip)}</dd>
+      <dt>${esc(t('nhood'))}</dt><dd>${esc(s.nhood)}</dd>
+      <dt>${esc(t('anhood'))}</dt><dd>${esc(s.anhood)}</dd>
+    </dl>
+  </li>`;
+}
+function setupResultsEvents() {
+  $('seg-list').addEventListener('click', e => {
+    const chip = e.target.closest('[data-copy]');
+    if (chip) { copyText(chip.dataset.copy, t('copiedCnn', { cnn: chip.dataset.copy })); return; }
+    const li = e.target.closest('.seg'); if (!li) return;
+    const cnn = +li.dataset.cnn;
+    if (e.target.tagName !== 'INPUT') { const cb = li.querySelector('input'); cb.checked = !cb.checked; }
+    toggleChecked(cnn, li.querySelector('input').checked);
+  });
+}
+function toggleChecked(cnn, on) {
+  on ? state.checked.add(cnn) : state.checked.delete(cnn);
+  render(); writeHash();
+}
+
+/* ---------- export ---------- */
+function record(s) {
+  const sides = Logic.addressSides(s);
+  const side = p => { const x = sides.find(y => y.parity === p); return x ? x.side : ''; };
+  return {
+    cnn: s.cnn, streetname: s.street, from_street: s.f, to_street: s.t,
+    lf_fadd: s.lf[0], lf_toadd: s.lf[1], rt_fadd: s.rt[0], rt_toadd: s.rt[1],
+    odd_side: side('odd'), even_side: side('even'),
+    divided_side: s.partners.length ? s.dividedSide : '',
+    supervisor_district: s.sup, zip_code: s.zip,
+    nhood: s.nhood, analysis_neighborhood: s.anhood,
+    layer: s.layer, active: s.active, accepted: s.accepted,
+    link: linkFor([s]),
+  };
+}
+function toCSV(segs) {
+  const rows = segs.map(record);
+  if (!rows.length) return '';
+  const cols = Object.keys(rows[0]);
+  const cell = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  return [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\n');
+}
+const baseUrl = () => location.origin + location.pathname;
+function linkFor(segs) { return baseUrl() + '#cnn=' + segs.map(s => s.cnn).join(','); }
+
+/* ---------- URL hash ----------
+   #cnn=4888101,4888201        blocks by CNN (checked)
+   #street=dolores             prefill the street
+   #street=dolores,27th        blocks around an intersection
+   &all=1                      include retired / non-public streets
+   &lang=es                    interface language (when available)
+*/
+let writingHash = false;
+function writeHash() {
+  const parts = [];
+  const cnns = [...state.checked];
+  if (cnns.length) parts.push('cnn=' + cnns.join(','));
+  else if (state.street) parts.push('street=' + encodeURIComponent(P(state.street).toLowerCase()).replace(/%20/g, '+'));
+  if (Logic.db && Logic.db.searchAll) parts.push('all=1');
+  if (LANG !== 'en') parts.push('lang=' + LANG);
+  const h = parts.length ? '#' + parts.join('&') : '';
+  if (h !== location.hash) { writingHash = true; history.replaceState(null, '', baseUrl() + location.search + h); writingHash = false; }
+}
+function readHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  const list = k => (p.get(k) || '').split(',').map(s => s.trim()).filter(Boolean);
+  return { cnn: list('cnn').map(Number).filter(Boolean), street: list('street'), all: p.get('all') === '1', lang: p.get('lang') };
+}
+function applyHash() {
+  const h = readHash();
+  if (h.lang && I18N[h.lang]) { LANG = h.lang; applyI18n(); }
+  if (h.all !== Logic.db.searchAll) { $('search-all').checked = h.all; Logic.setSearchAll(h.all); refreshMapFilter(); }
+  if (h.cnn.length) {
+    const segs = h.cnn.map(c => Logic.db.byCnn.get(c)).filter(Boolean);
+    if (!segs.length) return;
+    // retired or non-public CNNs still load from a link
+    const main = segs[0];
+    state.street = main.street; state.focusNode = null;
+    streetBox.set(main.street, P(main.street));
+    fromBox.enable(true); enableNum(true); setMode('cross');
+    const single = segs.length === 1 || segs.every(s => s.street === main.street && s.f === main.f && s.t === main.t);
+    if (single) { state.from = main.f; state.to = main.t; fromBox.set(main.f, P(main.f)); toBox.set(main.t, P(main.t)); toBox.enable(true); }
+    else { state.from = state.to = null; fromBox.set(null, ''); toBox.set(null, ''); toBox.enable(false); }
+    setResults(segs, single ? t('blocksBetween', { street: P(main.street), a: P(main.f), b: P(main.t) }) : t('linkedBlocks'), 'all');
+    fitSegs(segs);
+    return;
+  }
+  if (h.street.length) {
+    const a = Logic.resolveStreet(h.street[0]);
+    if (!a) return;
+    selectStreet(a);
+    if (h.street[1]) {
+      const b = Logic.resolveStreet(h.street[1]);
+      const nodes = b ? Logic.intersectionNodes(a, b) : [];
+      if (nodes.length) {
+        const segs = Logic.segsAroundNodes(nodes, [a, b]);
+        state.focusNode = nodes[0];
+        setResults(segs, t('aroundIntersection', { a: P(a), b: P(b) }), 'pick', []);
+        fitSegs(segs);
+      } else if (b) toast(t('noIntersection', { a: P(a), b: P(b) }));
+    }
+  }
+}
+window.addEventListener('hashchange', () => { if (!writingHash && Logic.db) applyHash(); });
+
+/* =====================================================================
+   MAP
+   ===================================================================== */
+let map, mapReady = false;
+const EMPTY = { type: 'FeatureCollection', features: [] };
+const fc = features => ({ type: 'FeatureCollection', features });
+const segFeature = (s, props = {}) => ({
+  type: 'Feature', id: s.cnn,
+  geometry: { type: 'LineString', coordinates: s.coords },
+  properties: { cnn: s.cnn, name: P(s.street), pub: s.isPublic, ...props },
+});
+const LABEL_FONT = ['Noto Sans Medium'];
+
+function initMap() {
+  map = new maplibregl.Map({
+    container: 'map',
+    style: CONFIG.styleUrl(CONFIG.PROTOMAPS_KEY),
+    bounds: CONFIG.SF_BOUNDS,
+    fitBoundsOptions: { padding: 20 },
+    attributionControl: { compact: true },
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  return new Promise(res => map.on('load', res));
+}
+function addMapLayers() {
+  map.addSource('sat', { type: 'raster', tiles: [CONFIG.SATELLITE_TILES], tileSize: 256, maxzoom: 19,
+    attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' });
+  map.addLayer({ id: 'bp-sat', type: 'raster', source: 'sat', layout: { visibility: 'none' } });
+
+  map.addSource('all', { type: 'geojson', data: fc(Logic.db.segs.map(s => segFeature(s, { active: s.active }))) });
+  map.addSource('street', { type: 'geojson', data: EMPTY });
+  map.addSource('context', { type: 'geojson', data: EMPTY });
+  map.addSource('results', { type: 'geojson', data: EMPTY });
+  map.addSource('ends', { type: 'geojson', data: EMPTY });
+  map.addSource('hover', { type: 'geojson', data: EMPTY });
+
+  map.addLayer({ id: 'bp-all', type: 'line', source: 'all', minzoom: 13,
+    paint: { 'line-color': '#7D86B5', 'line-opacity': 0.45, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 3] } });
+  map.addLayer({ id: 'bp-all-hit', type: 'line', source: 'all', minzoom: 13,
+    paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 18 } });
+  map.addLayer({ id: 'bp-street', type: 'line', source: 'street',
+    paint: { 'line-color': '#6D4AF5', 'line-opacity': 0.55, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 18, 8] } });
+  map.addLayer({ id: 'bp-context', type: 'line', source: 'context',
+    paint: { 'line-color': '#0EA5C6', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 18, 7] } });
+  map.addLayer({ id: 'bp-cand', type: 'line', source: 'results', filter: ['!=', ['get', 'on'], true],
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#6D4AF5', 'line-dasharray': [1.5, 1.2], 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 4, 18, 10] } });
+  map.addLayer({ id: 'bp-sel-casing', type: 'line', source: 'results', filter: ['==', ['get', 'on'], true],
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#FFC53D', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 10, 18, 24] } });
+  map.addLayer({ id: 'bp-sel', type: 'line', source: 'results', filter: ['==', ['get', 'on'], true],
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#FF3D7F', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 5, 18, 13] } });
+  map.addLayer({ id: 'bp-hover', type: 'line', source: 'hover',
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#1E2340', 'line-opacity': 0.35, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 8, 18, 20] } });
+  map.addLayer({ id: 'bp-ends', type: 'circle', source: 'ends',
+    paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 4, 18, 8], 'circle-color': '#fff', 'circle-stroke-color': '#1E2340', 'circle-stroke-width': 2.5 } });
+  map.addLayer({ id: 'bp-context-label', type: 'symbol', source: 'context',
+    layout: { 'symbol-placement': 'line', 'text-field': ['get', 'name'], 'text-font': LABEL_FONT, 'text-size': 14, 'symbol-spacing': 250 },
+    paint: { 'text-color': '#075E72', 'text-halo-color': '#fff', 'text-halo-width': 2.2 } });
+  map.addLayer({ id: 'bp-results-label', type: 'symbol', source: 'results',
+    layout: { 'symbol-placement': 'line-center', 'text-field': ['get', 'label'], 'text-font': LABEL_FONT, 'text-size': 15, 'text-offset': [0, -1.4], 'text-allow-overlap': false },
+    paint: { 'text-color': '#1E2340', 'text-halo-color': '#fff', 'text-halo-width': 2.5 } });
+
+  // hover + click to add/remove
+  const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+  map.on('mousemove', 'bp-all-hit', e => {
+    const f = e.features[0]; if (!f) return;
+    const s = Logic.db.byCnn.get(f.properties.cnn);
+    map.getCanvas().style.cursor = 'pointer';
+    map.getSource('hover').setData(fc([segFeature(s)]));
+    popup.setLngLat(e.lngLat).setHTML(`<b>${esc(P(s.street))}</b><br>${esc(t('between', { a: P(s.f), b: P(s.t) }))}<br>CNN ${s.cnn}`).addTo(map);
+  });
+  map.on('mouseleave', 'bp-all-hit', () => {
+    map.getCanvas().style.cursor = ''; popup.remove(); map.getSource('hover').setData(EMPTY);
+  });
+  map.on('click', 'bp-all-hit', e => {
+    const f = e.features[0]; if (!f) return;
+    toggleFromMap(Logic.db.byCnn.get(f.properties.cnn));
+  });
+
+  $('bm-map').addEventListener('click', () => setBasemap(false));
+  $('bm-sat').addEventListener('click', () => setBasemap(true));
+  mapReady = true;
+  refreshMapFilter();
+}
+function setBasemap(sat) {
+  $('bm-map').setAttribute('aria-pressed', !sat);
+  $('bm-sat').setAttribute('aria-pressed', sat);
+  if (!mapReady) return;
+  map.setLayoutProperty('bp-sat', 'visibility', sat ? 'visible' : 'none');
+  map.setPaintProperty('bp-all', 'line-color', sat ? '#FFFFFF' : '#7D86B5');
+  map.setPaintProperty('bp-all', 'line-opacity', sat ? 0.5 : 0.45);
+}
+function refreshMapFilter() {
+  if (!mapReady) return;
+  const f = Logic.db.searchAll ? null : ['==', ['get', 'pub'], true];
+  map.setFilter('bp-all', f);
+  map.setFilter('bp-all-hit', f);
+}
+function toggleFromMap(s) {
+  if (!s) return;
+  if (!state.results.some(r => r.cnn === s.cnn)) {
+    state.results = [...state.results, s];
+    if (!state.title) state.title = t('linkedBlocks');
+    state.checked.add(s.cnn);
+    toast(t('added', { name: `${P(s.street)} (CNN ${s.cnn})` }));
+  } else if (state.checked.has(s.cnn)) {
+    state.checked.delete(s.cnn);
+    toast(t('removed', { name: `${P(s.street)} (CNN ${s.cnn})` }));
+  } else {
+    state.checked.add(s.cnn);
+    toast(t('added', { name: `${P(s.street)} (CNN ${s.cnn})` }));
+  }
+  render(); writeHash();
+}
+function drawStreet(segs) {
+  if (!mapReady) return;
+  map.getSource('street').setData(fc(segs.map(s => segFeature(s))));
+}
+function drawResults() {
+  if (!mapReady) return;
+  const segs = state.results;
+  if (segs.length) drawStreet([]);
+  else if (state.street) drawStreet(Logic.streetSegs(state.street));
+  else drawStreet([]);
+  map.getSource('results').setData(fc(segs.map(s => segFeature(s, {
+    on: state.checked.has(s.cnn),
+    label: `${P(s.street)}${s.partners.length ? ` (${t(s.dividedSide)})` : ''}  ${s.cnn}`,
+  }))));
+  const shown = segs.filter(s => state.checked.has(s.cnn));
+  const ctxBase = shown.length ? shown : segs;
+  map.getSource('context').setData(fc(Logic.contextSegs(ctxBase).map(s => segFeature(s))));
+  const ends = new Map();
+  for (const s of ctxBase) { ends.set(s.fn, s.coords[0]); ends.set(s.tn, s.coords[s.coords.length - 1]); }
+  if (state.focusNode) ends.set(state.focusNode.cnn, [state.focusNode.x, state.focusNode.y]);
+  map.getSource('ends').setData(fc([...ends.values()].map(c => ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} }))));
+}
+function fitSegs(segs) {
+  if (!mapReady || !segs.length) return;
+  const b = new maplibregl.LngLatBounds();
+  segs.forEach(s => s.coords.forEach(c => b.extend(c)));
+  const small = window.innerWidth <= 860;
+  map.fitBounds(b, { padding: small ? 50 : 90, maxZoom: 18, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900 });
+}
+function resetView() {
+  if (!mapReady) return;
+  map.fitBounds(CONFIG.SF_BOUNDS, { padding: 20, duration: 600 });
+}
+
+/* =====================================================================
+   BUNTING (header decoration)
+   ===================================================================== */
+function drawBunting() {
+  const svg = $('bunting');
+  const W = 600, colors = ['#FF3D7F', '#FFC53D', '#0EA5C6', '#6D4AF5', '#6CCB3F'];
+  const y = x => 10 + 22 * Math.sin(Math.PI * x / W);
+  let out = `<path d="M0 ${y(0)} ${Array.from({ length: 61 }, (_, i) => `L${i * 10} ${y(i * 10).toFixed(1)}`).join(' ')}" fill="none" stroke="#1E2340" stroke-width="1.5"/>`;
+  for (let i = 0, x = 14; x < W - 10; i++, x += 28) {
+    const x2 = x + 22, y1 = y(x), y2 = y(x2), mx = (x + x2) / 2;
+    out += `<path d="M${x} ${y1.toFixed(1)} L${x2} ${y2.toFixed(1)} L${mx} ${((y1 + y2) / 2 + 24).toFixed(1)} Z" fill="${colors[i % colors.length]}"/>`;
+  }
+  svg.innerHTML = out;
+}
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+(async function boot() {
+  const h = readHash();
+  const nav = (navigator.language || 'en').slice(0, 2);
+  LANG = (h.lang && I18N[h.lang]) ? h.lang : (I18N[nav] ? nav : 'en');
+  applyI18n();
+  drawBunting();
+  setupForm();
+  setupResultsEvents();
+  console.log(`[block-party] ${_BUILD_VERSION} · ${new Date().toLocaleString()}`);
+
+  const dataP = fetch(CONFIG.DATA_URL).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const mapP = initMap();
+  try {
+    const raw = await dataP;
+    Logic.load(raw);
+    $('street-input').disabled = false;
+  } catch (err) {
+    console.error('[block-party] data load failed', err);
+    $('map-loading').textContent = t('loadFailed');
+    return;
+  }
+  await mapP;
+  addMapLayers();
+  $('map-loading').remove();
+  applyHash();
+  render();
+})();
+</script>
+</body>
+</html>
