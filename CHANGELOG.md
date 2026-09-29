@@ -1,0 +1,87 @@
+# Changelog
+
+All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
+
+## v17
+- Contours at 80% opacity.
+- In satellite mode, the basemap's labels (street names, neighborhoods, places) move above the imagery so people don't get disoriented, and drop back under it on the map view.
+- Contours also draw above the satellite imagery, just under the labels. They turn pale yellow on satellite so they stay distinct from the white clickable streets, and are white on the map view.
+
+## v16
+- Contour lines back to their original width (0.6–0.9 px), at 70% opacity.
+- Contours now sit under the basemap's labels.
+
+## v15
+- Contours changed to white so they stand apart from the blue-gray clickable streets; elevation labels warm gray with a white halo.
+
+## v14
+- Clearing "Your street" with the × keeps the current map view. Only "Start over" zooms back to the whole city.
+
+## v13
+- **Memory:** the elevation tile cache is capped at the 48 most recent tiles, stores elevation at half the size (Int16 decimeters instead of RGBA), and reuses one canvas. MapLibre's tile cache is capped at 150 tiles per source.
+- "Clear selections" also appears at the bottom of the card list, shown only when there are cards.
+- Cross streets on the map show one block on each side of the selection instead of two.
+
+## v12
+- Contour spacing restored to 40 / 20 / 10 ft at zoom 13 / 14 / 15, labeled every 200 / 100 / 50 ft.
+- Contours only appear from zoom 13 in (`CONTOUR_MINZOOM`).
+
+## v11
+- Selected-block map labels read "2–79 Duncan St" on the first line (lowest and highest address on the block) with the CNN below. Separate even/odd ranges stay in the hover popup.
+- Contours: all lines drawn the same (no major lines), denser spacing, elevation labels on every fifth line.
+- Hillshading turns off while contours are on.
+
+## v10
+- Hovering a card highlights its block on the map and pans to it if it's out of view.
+- Hovering a block on the map outlines its card and scrolls the list to it after a short pause if it's off screen.
+- Selected-block labels are stacked (street, CNN, address ranges) at the block's midpoint and rotated to run along the street.
+- Hover popup shows address ranges, even range first ("900–988, 901–989").
+
+## v9
+- 3D terrain stays on at every tilt, so tilting no longer jumps.
+- Street-following labels (basemap, ours, contours) are printed on the ground instead of standing up, which keeps them from twisting on terrain.
+- Past 30° of tilt, labels switch to flat-on-screen labels at each block's midpoint.
+- Test switches in the query string: `?labelalign=viewport` and `?label3d=45`.
+- Legend reordered and shortened: Your blocks, Cross streets, Block matches, Block preview, Your whole street, Block ends, Other streets, plus a "Tap any street to add it" hint.
+
+## v8
+- Terrain only while tilted, with midpoint labels at any tilt (replaced in v9).
+- Dashed "block matches" line has visible gaps on the map and in the legend.
+- Legend splits "Your whole street" and "Block preview" into separate entries.
+- **Contours toggle**, ported from Selecter: maplibre-contour v0.1.0 on the Terrarium tiles, feet, including Selecter's Safari ArrayBuffer workaround.
+
+## v7
+- When the map is tilted past 15°, street-following labels are hidden and replaced with flat-on-screen labels at each block's midpoint (threshold changed in v8 and v9).
+- × on each card removes it from the list and the map.
+- Map legend ("Map key") replaces the "tap a street" tip; collapsed by default on phones.
+
+## v6
+- Elevation chart width depends on block length: under 400 ft = 62% of the card, 400–600 ft = 81%, 600 ft and up = full width (`PROFILE_BUCKETS`).
+- The same grade draws at the same angle in every bucket, so short charts have headroom for steeper grades before squeezing.
+- Quarter labels drop the decimal at 10% and up.
+
+## v5
+- "Clear selections" below "Start over": empties the list and the cross street / number fields, keeps the street and the map view.
+- Hovering a cross street in either dropdown previews the matching blocks on the map (purple) and the cross street (teal).
+- Clicking a block on the map scrolls to its card and flashes it.
+
+## v4
+- Elevation chart uses one scale for every block: a 30% climb fills the chart height (`PROFILE_MAX_GRADE`).
+- Dashed reference lines at 5%, 10%, 20%, and 30%, fanning out from the block's low end.
+- Blocks too steep to fit are squeezed and get a zigzag break mark on the left edge plus a "Not to scale" caption.
+- Eight slope tiers: Flat (<2%), Gentle (2–5%), Moderate (5–10%), Steep (10–15%), Very steep (15–20%), Extremely steep (20–25%), Ridiculously steep (25–30%), Ludicrously steep (30%+).
+
+## v3
+- Street labels stay upright facing the screen when the map is tilted, using Selecter's approach (replaced in v9 because they twisted on terrain).
+
+## v2
+- Hillshade and 3D terrain from AWS Terrarium tiles, with a 3D button to tilt the map.
+- Cards show block length, average and steepest slope with uphill direction, and a five-point (four-part) elevation profile chart.
+- CSV/JSON exports add `length_ft`, `elev_from_ft`, `elev_to_ft`, `slope_pct`, `steepest_pct`, and `profile_ft`.
+
+## v1
+- Initial build: street autocomplete, cross street and street address lookups, result cards with CNN, address ranges, supervisor district, ZIP, and neighborhoods.
+- Handles alley-split blocks and both sides of divided streets.
+- MapLibre + Protomaps light basemap with Esri satellite toggle; click streets on the map to add them.
+- Copy as CSV / JSON / link; `#cnn=`, `#street=`, `&all=1`, and `&lang=` URL hashes.
+- `scripts/build_data.py` builds the compact `data/streets.json` from the DataSF CSVs.
