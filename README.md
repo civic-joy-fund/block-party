@@ -3,8 +3,6 @@
 Find a San Francisco street block and its city ID (CNN) for a block party application.
 Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 
-https://civic-joy-fund.github.io/block-party/
-
 ## Files
 
 | Path | What it is |
@@ -52,6 +50,12 @@ Street names in the hash are matched the same way as the search box (case-insens
 
 - `CONFIG.PROTOMAPS_KEY`: swap for the production key.
 - `CONFIG.PUBLIC_LAYERS`: street layers shown by default. Anything not listed (freeways, paper streets, pseudo streets, private parking) and anything with `active=false` only appears with the "Include retired…" box checked. Links by CNN always load, whatever the layer.
+
+## Terrain and slope
+
+- Hillshade and 3D terrain use AWS Terrarium elevation tiles (`CONFIG.DEM_TILES`, free, no key). The **3D** button tilts the map; `CONFIG.TERRAIN_EXAGGERATION` (default 1.5) makes SF's hills read better.
+- Each block card samples elevation at five points (start, ¼, ½, ¾, end) from the same tiles at zoom 15, giving a four-part profile, average slope, and steepest part. This runs in the browser when a card appears. CSV/JSON exports wait for it and include `length_ft`, `elev_from_ft`, `elev_to_ft`, `slope_pct` (signed, from → to), `steepest_pct`, and `profile_ft`.
+- Terrarium in SF is about 10 m resolution, so very short blocks (under ~30 m) can show noisy slopes.
 
 ## Adding a language
 

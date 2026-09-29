@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v1 -->
+<!-- build: v17 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<!-- maplibre-contour v0.1.0 (BSD-3-Clause), same version as Selecter -->
+<script src="https://unpkg.com/maplibre-contour@0.1.0/dist/index.min.js"></script>
 <style>
 :root {
   --ink: #1E2340;
@@ -152,7 +154,8 @@ h1 {
 }
 .modes button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 2px 0 var(--line); }
 .hint { font-size: 14px; color: var(--ink-soft); margin: 6px 2px 0; }
-.lookup-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 22px; }
+.foot-btns { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.lookup-foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin: 6px 0 22px; }
 .check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--grape); }
 .link-btn { border: 0; background: none; padding: 4px 0; font-size: 14px; font-weight: 600; color: var(--grape); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -184,7 +187,10 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
   cursor: pointer;
   transition: border-color .12s;
 }
-.seg:hover { border-color: #AEB6DA; }
+.seg:hover, .seg.is-hover { border-color: #AEB6DA; }
+.seg.is-hover { box-shadow: 0 0 0 3px var(--grape-wash); }
+.seg.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { 0%, 30% { box-shadow: 0 0 0 6px var(--sun); } 100% { box-shadow: 0 0 0 0 rgba(255,197,61,0); } }
 .seg.is-checked { border-color: var(--pink); background: linear-gradient(90deg, var(--pink-wash), var(--card) 60%); }
 .seg input[type=checkbox] {
   position: absolute; left: 18px; top: 18px;
@@ -193,6 +199,12 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 .seg-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .seg-name { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1.15; }
 .seg-between { color: var(--ink-soft); font-size: 15px; margin-top: 2px; }
+.seg-btns { flex: none; display: flex; align-items: center; gap: 4px; }
+.remove-btn {
+  width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent;
+  font-size: 22px; line-height: 1; color: var(--ink-soft); cursor: pointer; margin-right: -6px;
+}
+.remove-btn:hover { background: var(--paper); color: var(--ink); }
 .cnn-chip {
   flex: none; border: 0; cursor: pointer;
   background: var(--ink); color: #fff; border-radius: 10px;
@@ -212,6 +224,23 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
   border: 2px dashed var(--line); border-radius: var(--radius-lg);
   padding: 16px 18px; color: var(--ink-soft); font-size: 15px; background: var(--card);
 }
+.profile { margin-top: 14px; padding-top: 10px; border-top: 1.5px dashed var(--line); min-height: 118px; }
+.profile svg { display: block; width: 100%; height: auto; overflow: visible; }
+.profile .wait { font-size: 14px; color: var(--ink-soft); padding: 40px 0; text-align: center; }
+.profile-cap { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+.profile-cap > span:last-child { text-align: right; }
+.profile-cap b { color: var(--ink); font-weight: 600; }
+.grade { display: inline-block; font-size: 12px; font-weight: 700; padding: 0 8px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+.grade.g0 { background: #E6F7DD; color: #2F6B14; }
+.grade.g1 { background: #EEF6CF; color: #4A5E00; }
+.grade.g2 { background: #FFF4D6; color: #7A5600; }
+.grade.g3 { background: #FFE3CC; color: #8A3B00; }
+.grade.g4 { background: #FFD5C4; color: #9A2B00; }
+.grade.g5 { background: #FFD6E4; color: #9A0F43; }
+.grade.g6 { background: #F4BFD2; color: #6E0030; }
+.grade.g7 { background: #1E2340; color: #FFC53D; }
+.profile-cap .nts { font-style: italic; cursor: help; }
+.list-clear { display: block; margin: 14px 0 0 auto; }
 .foot-note { font-size: 13px; color: var(--ink-soft); margin-top: 26px; }
 .foot-note a { color: inherit; }
 
@@ -221,11 +250,18 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 .map-toggle { display: flex; background: var(--card); border: 2px solid var(--ink); border-radius: 999px; padding: 3px; box-shadow: 0 3px 0 var(--ink); }
 .map-toggle button { border: 0; background: none; padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; cursor: pointer; }
 .map-toggle button[aria-pressed="true"] { background: var(--ink); color: #fff; }
-.map-tip {
+.map-toggle.single button[aria-pressed="true"] { background: var(--sun); color: var(--ink); }
+.legend {
   position: absolute; z-index: 5; left: 12px; bottom: 34px; max-width: calc(100% - 24px);
-  background: rgba(255,255,255,.94); border-radius: 12px; padding: 7px 12px; font-size: 14px;
-  border: 1.5px solid var(--line);
+  background: rgba(255,255,255,.95); border-radius: 14px; padding: 8px 12px; font-size: 13px;
+  border: 2px solid var(--ink); box-shadow: 0 3px 0 var(--ink);
 }
+.legend summary { font-weight: 700; cursor: pointer; list-style-position: inside; }
+.legend ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend svg { width: 28px; height: 12px; flex: none; overflow: visible; }
+.legend .lg-halo { filter: drop-shadow(0 0 1px rgba(30,35,64,.5)); }
+.legend-hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-soft); }
 .map-loading { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 600; color: var(--ink-soft); z-index: 4; pointer-events: none; }
 .maplibregl-popup-content { font-family: var(--body); border-radius: 12px; padding: 8px 12px; font-size: 14px; box-shadow: 0 4px 0 rgba(30,35,64,.25); }
 .maplibregl-popup-content b { font-weight: 700; }
@@ -296,7 +332,10 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 
     <div class="lookup-foot">
       <label class="check"><input type="checkbox" id="search-all"><span data-i18n="searchAll">Include retired, freeway, and paper streets</span></label>
-      <button type="button" class="link-btn" id="start-over" data-i18n="startOver">Start over</button>
+      <div class="foot-btns">
+        <button type="button" class="link-btn" id="start-over" data-i18n="startOver">Start over</button>
+        <button type="button" class="link-btn" id="clear-sel" data-i18n="clearSel">Clear selections</button>
+      </div>
     </div>
   </section>
 
@@ -308,8 +347,26 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
         <button type="button" id="bm-map" aria-pressed="true" data-i18n="bmMap">Map</button>
         <button type="button" id="bm-sat" aria-pressed="false" data-i18n="bmSat">Satellite</button>
       </div>
+      <div class="map-toggle single">
+        <button type="button" id="btn-3d" aria-pressed="false" data-i18n="btn3d" title="Tilt the map to see the hills">3D</button>
+      </div>
+      <div class="map-toggle single">
+        <button type="button" id="btn-contours" aria-pressed="false" data-i18n="btnContours" title="Show elevation lines every 10 ft">Contours</button>
+      </div>
     </div>
-    <div class="map-tip" data-i18n="mapTip">Tap a street on the map to add it to your list or take it off.</div>
+    <details class="legend" id="legend" open>
+      <summary data-i18n="legend">Map key</summary>
+      <ul>
+        <li><svg viewBox="0 0 28 12"><line x1="3" y1="6" x2="25" y2="6" stroke="#FFC53D" stroke-width="10" stroke-linecap="round"/><line x1="3" y1="6" x2="25" y2="6" stroke="#FF3D7F" stroke-width="5" stroke-linecap="round"/></svg><span data-i18n="lgChecked">Your blocks</span></li>
+        <li><svg viewBox="0 0 28 12"><line x1="3" y1="6" x2="25" y2="6" stroke="#0EA5C6" stroke-width="4"/></svg><span data-i18n="lgCross">Cross streets</span></li>
+        <li><svg viewBox="0 0 28 12"><line x1="1" y1="6" x2="27" y2="6" stroke="#6D4AF5" stroke-width="4" stroke-dasharray="6 4"/></svg><span data-i18n="lgUnchecked">Block matches</span></li>
+        <li><svg viewBox="0 0 28 12" class="lg-halo"><line x1="3" y1="6" x2="25" y2="6" stroke="#fff" stroke-width="10" stroke-linecap="round"/><line x1="3" y1="6" x2="25" y2="6" stroke="#6D4AF5" stroke-width="5" stroke-linecap="round"/></svg><span data-i18n="lgPreview">Block preview</span></li>
+        <li><svg viewBox="0 0 28 12"><line x1="3" y1="6" x2="25" y2="6" stroke="#6D4AF5" stroke-opacity=".55" stroke-width="5"/></svg><span data-i18n="lgStreet">Your whole street</span></li>
+        <li><svg viewBox="0 0 28 12"><circle cx="14" cy="6" r="4" fill="#fff" stroke="#1E2340" stroke-width="2"/></svg><span data-i18n="lgEnds">Block ends</span></li>
+        <li><svg viewBox="0 0 28 12"><line class="lg-other" x1="3" y1="6" x2="25" y2="6" stroke="#7D86B5" stroke-opacity=".6" stroke-width="2"/></svg><span data-i18n="lgOther">Other streets</span></li>
+      </ul>
+      <p class="legend-hint" data-i18n="lgHint">Tap any street to add it.</p>
+    </details>
   </div>
 
   <section class="results" id="results" hidden aria-live="polite">
@@ -323,13 +380,14 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
       <button type="button" class="btn" id="copy-link" data-i18n="copyLink">Copy link</button>
     </div>
     <ul class="seg-list" id="seg-list"></ul>
+    <button type="button" class="link-btn list-clear" id="clear-sel-bottom" data-i18n="clearSel">Clear selections</button>
     <p class="foot-note" id="foot-note"></p>
   </section>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const _BUILD_VERSION = 'v1';
+const _BUILD_VERSION = 'v17';
 
 /* =====================================================================
    CONFIG
@@ -337,6 +395,14 @@ const _BUILD_VERSION = 'v1';
 const CONFIG = {
   PROTOMAPS_KEY: 'ffc24a4325d458ce',
   styleUrl: key => `https://api.protomaps.com/styles/v5/light/en.json?key=${key}`,
+  DEM_TILES: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+  TERRAIN_EXAGGERATION: 1.5,
+  // Street-following labels. 'map' = printed on the ground, which stays straight on terrain.
+  // 'viewport' = stand up facing the screen, which twists on terrain. Try ?labelalign=viewport to compare.
+  LINE_LABEL_PITCH_ALIGNMENT: new URLSearchParams(location.search).get('labelalign') || 'map',
+  // Past this tilt (degrees) street-following labels switch to flat-on-screen labels at each block's
+  // middle, because printed-on-the-ground text gets hard to read. Try ?label3d=45 to compare.
+  LABEL_3D_PITCH: +(new URLSearchParams(location.search).get('label3d') || 30),
   SATELLITE_TILES: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   DATA_URL: 'data/streets.json',
   // Layers people can hold an event on. Everything else (freeways, paper streets, etc.)
@@ -367,10 +433,13 @@ const I18N = {
     numPh: 'For example, 3450',
     searchAll: 'Include retired, freeway, and paper streets',
     startOver: 'Start over',
+    clearSel: 'Clear selections',
     loading: 'Loading streets…',
     loadFailed: 'Street data couldn’t load. Check that data/streets.json is in the repo, then reload.',
     bmMap: 'Map', bmSat: 'Satellite',
-    mapTip: 'Tap a street on the map to add it to your list or take it off.',
+    legend: 'Map key', lgChecked: 'Your blocks', lgCross: 'Cross streets', lgUnchecked: 'Block matches',
+    lgPreview: 'Block preview', lgStreet: 'Your whole street', lgEnds: 'Block ends', lgOther: 'Other streets',
+    lgHint: 'Tap any street to add it.', removeCard: 'Remove from list',
     copyCsv: 'Copy as CSV', copyJson: 'Copy as JSON', copyLink: 'Copy link',
     copiedCsv: 'Copied as CSV', copiedJson: 'Copied as JSON', copiedLink: 'Link copied', copiedCnn: 'Copied CNN {cnn}',
     noMatch: 'No streets match “{q}”',
@@ -401,6 +470,16 @@ const I18N = {
     north: 'north', south: 'south', east: 'east', west: 'west',
     dataNote: 'Street data from DataSF, Streets – Active and Retired, updated {date}.',
     typeMore: 'Keep typing to see more streets',
+    btn3d: '3D', btnContours: 'Contours',
+    length: 'Length', slope: 'Slope',
+    slopeAvg: '{pct}% average', steepest: 'steepest part {pct}%',
+    uphillTo: 'uphill toward {name}',
+    grade0: 'Flat', grade1: 'Gentle', grade2: 'Moderate', grade3: 'Steep', grade4: 'Very steep',
+    grade5: 'Extremely steep', grade6: 'Ridiculously steep', grade7: 'Ludicrously steep',
+    notToScale: 'Not to scale', squeezed: 'Too steep to fit, so the height is squeezed to {pct}% of the usual scale',
+    measuring: 'Measuring the hill…', elevFailed: 'Elevation isn’t available for this block right now.',
+    profileTitle: 'Elevation along the block',
+    ft: '{n} ft',
   }
 };
 let LANG = 'en';
@@ -740,7 +819,7 @@ const Logic = (() => {
       if (streets.includes(s.street) && eligible(s)) set.set(s.cnn, s);
     return [...set.values()];
   }
-  // cross streets drawn for context: other streets meeting the result's endpoints, plus one more segment along each
+  // cross streets drawn for context: the block of each other street that meets the result's endpoints
   function contextSegs(resultSegs) {
     const inResult = new Set(resultSegs.map(s => s.cnn));
     const streetsInResult = new Set(resultSegs.map(s => s.street));
@@ -749,8 +828,6 @@ const Logic = (() => {
     for (const n of nodes) for (const s of DB.segsAtNode.get(n) || []) {
       if (inResult.has(s.cnn) || streetsInResult.has(s.street) || !eligible(s)) continue;
       out.set(s.cnn, s);
-      const far = s.fn === n ? s.tn : s.fn;
-      for (const s2 of DB.segsAtNode.get(far) || []) if (s2.street === s.street && eligible(s2)) out.set(s2.cnn, s2);
     }
     return [...out.values()];
   }
@@ -763,6 +840,111 @@ const Logic = (() => {
   };
 })();
 // </logic>
+
+/* =====================================================================
+   ELEVATION  (Terrarium DEM tiles, sampled in the browser; same source as the map terrain)
+   Five points along each block (start, 1/4, 1/2, 3/4, end) give a four-part profile.
+   ===================================================================== */
+const Elev = (() => {
+  const Z = 15, TILE = 256;
+  const tiles = new Map();     // "x/y" -> Promise<Int16Array|null>, most recently used last
+  const MAX_TILES = 48;        // ~6 MB of decoded elevation; older tiles are dropped
+  let canvas, ctx;             // one scratch canvas, reused for every tile
+  const profiles = new Map();  // cnn -> Promise<profile|null>
+  const done = new Map();      // cnn -> profile|null (resolved)
+  // The ?src= suffix keeps these CORS requests in a separate browser cache from MapLibre's
+  // terrain tile requests (Safari returns garbled pixels otherwise). Do not remove.
+  const url = (x, y) => CONFIG.DEM_TILES.replace('{z}', Z).replace('{x}', x).replace('{y}', y) + '?src=blockparty';
+
+  function tile(x, y) {
+    const key = x + '/' + y;
+    if (tiles.has(key)) { const p = tiles.get(key); tiles.delete(key); tiles.set(key, p); return p; }
+    if (tiles.size >= MAX_TILES) tiles.delete(tiles.keys().next().value);
+    tiles.set(key, new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const timer = setTimeout(() => resolve(null), 10000);
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          if (!canvas) {
+            canvas = document.createElement('canvas'); canvas.width = canvas.height = TILE;
+            ctx = canvas.getContext('2d', { willReadFrequently: true });
+          }
+          ctx.clearRect(0, 0, TILE, TILE);
+          ctx.drawImage(img, 0, 0);
+          const px = ctx.getImageData(0, 0, TILE, TILE).data;
+          // keep elevation in decimeters (Int16) instead of the RGBA pixels: 1/2 the memory
+          const dm = new Int16Array(TILE * TILE);
+          for (let i = 0; i < dm.length; i++) {
+            const o = i * 4;
+            dm[i] = Math.round(((px[o] * 256 + px[o + 1] + px[o + 2] / 256) - 32768) * 10);
+          }
+          resolve(dm);
+        } catch (e) { resolve(null); }
+      };
+      img.onerror = () => { clearTimeout(timer); resolve(null); };
+      img.src = url(x, y);
+    }));
+    return tiles.get(key);
+  }
+  async function pixel(gx, gy) { // global pixel coords at zoom Z
+    const d = await tile(Math.floor(gx / TILE), Math.floor(gy / TILE));
+    if (!d) return null;
+    return d[(gy % TILE) * TILE + (gx % TILE)] / 10;
+  }
+  // bilinear elevation in meters
+  async function at([lng, lat]) {
+    const n = 2 ** Z, latR = lat * Math.PI / 180;
+    const px = (lng + 180) / 360 * n * TILE - 0.5;
+    const py = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n * TILE - 0.5;
+    const x0 = Math.floor(px), y0 = Math.floor(py), fx = px - x0, fy = py - y0;
+    const [a, b, c, d] = await Promise.all([pixel(x0, y0), pixel(x0 + 1, y0), pixel(x0, y0 + 1), pixel(x0 + 1, y0 + 1)]);
+    if ([a, b, c, d].some(v => v == null)) return null;
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+  }
+  function pointAlong(coords, frac, total) {
+    const target = frac * total;
+    let acc = 0;
+    for (let i = 1; i < coords.length; i++) {
+      const seg = segMeters(coords[i - 1], coords[i]);
+      if (acc + seg >= target && seg > 0) {
+        const k = (target - acc) / seg;
+        return [coords[i - 1][0] + k * (coords[i][0] - coords[i - 1][0]), coords[i - 1][1] + k * (coords[i][1] - coords[i - 1][1])];
+      }
+      acc += seg;
+    }
+    return coords[coords.length - 1];
+  }
+  const COS = Math.cos(37.76 * Math.PI / 180);
+  const segMeters = (a, b) => Math.hypot((b[0] - a[0]) * 111320 * COS, (b[1] - a[1]) * 111320);
+
+  // Profile runs from the "from" cross street (f_st) to the "to" cross street (t_st).
+  async function compute(s) {
+    let coords = s.coords;
+    const fnode = Logic.db.nodes.get(s.fn);
+    if (fnode) {
+      const d = p => Math.hypot(p[0] - fnode.x, p[1] - fnode.y);
+      if (d(coords[coords.length - 1]) < d(coords[0])) coords = [...coords].reverse();
+    }
+    const fracs = [0, 0.25, 0.5, 0.75, 1];
+    const elev = await Promise.all(fracs.map(f => at(pointAlong(coords, f, s.len))));
+    if (elev.some(v => v == null)) return null;
+    const part = s.len / 4;
+    const slopes = elev.slice(1).map((e, i) => part > 0 ? (e - elev[i]) / part * 100 : 0);
+    const net = s.len > 0 ? (elev[4] - elev[0]) / s.len * 100 : 0;
+    const steepest = Math.max(...slopes.map(Math.abs));
+    return { elev, slopes, net, steepest, len: s.len };
+  }
+  function get(s) {
+    if (!profiles.has(s.cnn)) {
+      const p = compute(s).catch(() => null).then(r => { done.set(s.cnn, r); return r; });
+      profiles.set(s.cnn, p);
+    }
+    return profiles.get(s.cnn);
+  }
+  return { get, peek: cnn => done.get(cnn), has: cnn => done.has(cnn) };
+})();
 
 /* =====================================================================
    UI
@@ -795,7 +977,7 @@ async function copyText(text, msg) {
 }
 
 /* ---------- combobox ---------- */
-function combobox(root, { getOptions, onSelect, onClear, showAllOnFocus = false }) {
+function combobox(root, { getOptions, onSelect, onClear, onHover, showAllOnFocus = false }) {
   const input = root.querySelector('input');
   const list = root.querySelector('.listbox');
   const clear = root.querySelector('.clear-btn');
@@ -805,10 +987,11 @@ function combobox(root, { getOptions, onSelect, onClear, showAllOnFocus = false 
   input.setAttribute('aria-controls', id);
   input.setAttribute('aria-autocomplete', 'list');
   input.setAttribute('aria-expanded', 'false');
-  let opts = [], active = -1, chosen = null;
+  let opts = [], active = -1, chosen = null, hovered;
+  const hover = v => { if (onHover && v !== hovered) { hovered = v; onHover(v); } };
 
   function open() { list.classList.add('open'); input.setAttribute('aria-expanded', 'true'); }
-  function close() { list.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); active = -1; }
+  function close() { list.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); active = -1; hover(null); }
   function render() {
     const res = getOptions(input.value);
     opts = res.items;
@@ -830,6 +1013,7 @@ function combobox(root, { getOptions, onSelect, onClear, showAllOnFocus = false 
       items[i].setAttribute('aria-selected', 'true');
       items[i].scrollIntoView({ block: 'nearest' });
       input.setAttribute('aria-activedescendant', items[i].id);
+      hover(opts[i] && opts[i].value);
     }
   }
   function choose(i) {
@@ -863,6 +1047,8 @@ function combobox(root, { getOptions, onSelect, onClear, showAllOnFocus = false 
     }
   }, 150));
   list.addEventListener('mousedown', e => e.preventDefault());
+  list.addEventListener('mouseover', e => { const li = e.target.closest('[role=option]'); if (li) hover(opts[+li.dataset.i]?.value); });
+  list.addEventListener('mouseleave', () => hover(null));
   list.addEventListener('click', e => { const li = e.target.closest('[role=option]'); if (li) choose(+li.dataset.i); });
   clear.addEventListener('click', () => { set(null, ''); onClear && onClear(); input.focus(); });
 
@@ -882,12 +1068,13 @@ function setupForm() {
       return { items: r.items.map(e => ({ value: e.name, label: e.pretty })), more: r.total > r.items.length };
     },
     onSelect: name => selectStreet(name),
-    onClear: () => startOver(),
+    onClear: () => startOver({ keepView: true }),  // clearing the street keeps the map where it is
   });
   fromBox = combobox($('from-combo'), {
     showAllOnFocus: true,
     getOptions: q => ({ items: filterNames(Logic.crossStreetsInOrder(state.street), q).map(n => ({ value: n, label: P(n) })) }),
     onSelect: name => selectFrom(name),
+    onHover: name => previewSegs(name ? Logic.segsTouching(state.street, name) : []),
     onClear: () => { state.from = state.to = null; toBox.set(null, ''); toBox.enable(false); showStreetOverview(); },
   });
   toBox = combobox($('to-combo'), {
@@ -898,6 +1085,7 @@ function setupForm() {
       return { items: rows.filter(r => keep.has(r.name)).map(r => ({ value: r.name, label: P(r.name), sub: t('ftAway', { ft: roundFt(r.meters) }) })) };
     },
     onSelect: name => selectTo(name),
+    onHover: name => previewSegs(name ? Logic.segsBetween(state.street, state.from, name) : []),
     onClear: () => { state.to = null; selectFrom(state.from); },
   });
 
@@ -916,8 +1104,10 @@ function setupForm() {
     rerunLookup();
   });
   $('start-over').addEventListener('click', () => { startOver(); $('street-input').focus(); });
-  $('copy-csv').addEventListener('click', () => copyText(toCSV(checkedSegs()), t('copiedCsv')));
-  $('copy-json').addEventListener('click', () => copyText(JSON.stringify(checkedSegs().map(record), null, 2), t('copiedJson')));
+  $('clear-sel').addEventListener('click', clearSelections);
+  $('clear-sel-bottom').addEventListener('click', clearSelections);
+  $('copy-csv').addEventListener('click', async () => copyText(toCSV(await exportSegs()), t('copiedCsv')));
+  $('copy-json').addEventListener('click', async () => copyText(JSON.stringify((await exportSegs()).map(record), null, 2), t('copiedJson')));
   $('copy-link').addEventListener('click', () => copyText(linkFor(checkedSegs()), t('copiedLink')));
 }
 function filterNames(names, q) {
@@ -931,14 +1121,21 @@ function filterNames(names, q) {
 const roundFt = m => { const ft = m * 3.28084; return ft < 1000 ? Math.round(ft / 10) * 10 : Math.round(ft / 50) * 50; };
 
 /* ---------- flow ---------- */
-function startOver() {
+function startOver({ keepView = false } = {}) {
   Object.assign(state, { street: null, from: null, to: null, num: '', results: [], title: '', note: '', focusNode: null });
   state.checked.clear();
   streetBox.set(null, '');
   fromBox.set(null, ''); toBox.set(null, ''); $('num-input').value = '';
   fromBox.enable(false); toBox.enable(false); enableNum(false);
   render(); writeHash();
-  resetView();
+  if (!keepView) resetView();
+}
+// Empties the block list (and the cross street / number fields) but keeps the street and the map view
+function clearSelections() {
+  state.from = state.to = null; state.num = ''; state.focusNode = null;
+  fromBox.set(null, ''); toBox.set(null, ''); toBox.enable(false);
+  $('num-input').value = '';
+  setResults([], '', '');
 }
 function enableNum(on) { $('num-input').disabled = !on; $('step-num').classList.toggle('is-disabled', !on); }
 function setMode(mode) {
@@ -1012,6 +1209,8 @@ function render() {
   $('results-sub').textContent = state.kind === 'pick' ? t('subPick', { n, total: segs.length }) : t('subAll', { n, total: segs.length });
   ['copy-csv', 'copy-json', 'copy-link'].forEach(id => $(id).disabled = !n);
   $('seg-list').innerHTML = segs.map(cardHTML).join('');
+  $('clear-sel-bottom').hidden = !segs.length;
+  hydrateElevation();
   const d = Logic.db && Logic.db.dataAsOf;
   $('foot-note').textContent = d ? t('dataNote', { date: d.slice(0, 10) }) : '';
   drawResults();
@@ -1033,7 +1232,10 @@ function cardHTML(s) {
     <div class="seg-top">
       <div><div class="seg-name">${esc(P(s.street))}</div>
       <div class="seg-between">${esc(t('between', { a: P(s.f), b: P(s.t) }))}</div></div>
-      <button type="button" class="cnn-chip" data-copy="${s.cnn}" title="Copy CNN"><small>CNN</small>${s.cnn}</button>
+      <div class="seg-btns">
+        <button type="button" class="cnn-chip" data-copy="${s.cnn}" title="Copy CNN"><small>CNN</small>${s.cnn}</button>
+        <button type="button" class="remove-btn" data-remove="${s.cnn}" title="${esc(t('removeCard'))}" aria-label="${esc(t('removeCard'))}: ${esc(P(s.street))} ${s.cnn}">×</button>
+      </div>
     </div>
     ${tags.length ? `<div class="tags">${tags.map(([c, x]) => `<span class="tag ${c}">${esc(x)}</span>`).join('')}</div>` : ''}
     <dl class="facts">
@@ -1042,18 +1244,129 @@ function cardHTML(s) {
       <dt>${esc(t('zip'))}</dt><dd>${esc(s.zip)}</dd>
       <dt>${esc(t('nhood'))}</dt><dd>${esc(s.nhood)}</dd>
       <dt>${esc(t('anhood'))}</dt><dd>${esc(s.anhood)}</dd>
+      <dt>${esc(t('length'))}</dt><dd>${esc(t('ft', { n: fmtFt(s.len) }))}</dd>
+      <dt>${esc(t('slope'))}</dt><dd data-slope="${s.cnn}">${slopeHTML(s)}</dd>
     </dl>
+    <div class="profile" data-profile="${s.cnn}" aria-label="${esc(t('profileTitle'))}">${profileHTML(s)}</div>
   </li>`;
 }
+
+/* ---------- slope + elevation profile ---------- */
+const M2FT = 3.28084;
+const PROFILE_MAX_GRADE = 30;          // % grade that fills the chart height
+const REF_GRADES = [5, 10, 20, 30];     // dashed reference lines
+// Chart width by block length (ft), so short and long blocks nearby look different.
+// Widths are in chart units; 320 = the card's full width. 200 is the narrowest the labels allow.
+const PROFILE_FULL_W = 320;
+const PROFILE_BUCKETS = [[400, 200], [600, 260], [Infinity, 320]];   // [under this length, width]
+const fmtFt = m => { const ft = m * M2FT; return ft < 100 ? Math.round(ft) : Math.round(ft / 5) * 5; };
+// Upper bounds (percent grade) for Flat, Gentle, Moderate, Steep, Very, Extremely, Ridiculously; above = Ludicrously
+const GRADE_STEPS = [2, 5, 10, 15, 20, 25, 30];
+function gradeOf(pct) {
+  const a = Math.abs(pct);
+  const i = GRADE_STEPS.findIndex(max => a < max);
+  return i < 0 ? GRADE_STEPS.length : i;
+}
+function slopeHTML(s) {
+  if (!Elev.has(s.cnn)) return `<span class="wait-inline">${esc(t('measuring'))}</span>`;
+  const p = Elev.peek(s.cnn);
+  if (!p) return esc(t('elevFailed'));
+  const g = gradeOf(Math.max(Math.abs(p.net), p.steepest * 0.8));
+  let txt = t('slopeAvg', { pct: Math.abs(p.net).toFixed(1) });
+  if (p.steepest - Math.abs(p.net) >= 1.5) txt += ', ' + t('steepest', { pct: p.steepest.toFixed(1) });
+  if (Math.abs(p.net) >= 1) txt += ', ' + t('uphillTo', { name: P(p.net > 0 ? s.t : s.f) });
+  return `${esc(txt)}<span class="grade g${g}">${esc(t('grade' + g))}</span>`;
+}
+function profileHTML(s) {
+  if (!Elev.has(s.cnn)) return `<div class="wait">${esc(t('measuring'))}</div>`;
+  const p = Elev.peek(s.cnn);
+  if (!p) return '';
+  const ft = p.elev.map(e => e * M2FT);
+  const lenFt = Math.max(p.len * M2FT, 1);
+  const W = PROFILE_BUCKETS.find(([max]) => lenFt < max)[1];
+  const H = 92, L = 6, R = 6, T = 20, B = 12, PH = H - T - B;
+  const PW = W - L - R, PW_FULL = PROFILE_FULL_W - L - R;
+  const lo = Math.min(...ft), rise = Math.max(...ft) - lo;
+  // Same angle for the same grade in every chart: on a full-width chart a PROFILE_MAX_GRADE climb fills
+  // the height. Narrower (shorter) charts use the same angle, so they have headroom for steeper grades.
+  // Anything that still doesn't fit is squeezed and gets the break mark.
+  const k0 = PH / (PROFILE_MAX_GRADE / 100 * lenFt) * (PW / PW_FULL);
+  const squeezed = rise * k0 > PH;
+  const k = squeezed ? PH / rise : k0;
+  const xs = ft.map((_, i) => L + i * PW / 4);
+  const ys = ft.map(v => T + PH - (v - lo) * k);
+  // reference grades fan out from the low end of the block
+  const lowLeft = ft[0] <= ft[4];
+  const x0 = lowLeft ? L : W - R, x1 = lowLeft ? W - R : L;
+  const refs = REF_GRADES.map(g => {
+    const y = T + PH - g / 100 * lenFt * k;
+    if (y < T - 4) return '';
+    return `<line x1="${x0}" y1="${T + PH}" x2="${x1}" y2="${y.toFixed(1)}" stroke="#9AA1C3" stroke-opacity=".55" stroke-dasharray="2 3"/>` +
+      `<text x="${lowLeft ? x1 - 2 : x1 + 2}" y="${(y + 10).toFixed(1)}" text-anchor="${lowLeft ? 'end' : 'start'}" font-size="10" fill="#8A90B4">${g}%</text>`;
+  }).join('');
+  // axis-break mark on the left edge when squeezed
+  const zig = y => { let d = `M0 ${y}`; for (let i = 1; i <= 4; i++) d += ` L${i * 3.5} ${y + (i % 2 ? -3 : 3)}`; return d; };
+  const bm = T + PH / 2;
+  const breakMark = squeezed ? `<g>
+      <path d="${zig(bm - 3)}" fill="none" stroke="#fff" stroke-width="5"/><path d="${zig(bm + 3)}" fill="none" stroke="#fff" stroke-width="5"/>
+      <path d="${zig(bm - 3)}" fill="none" stroke="#1E2340" stroke-width="1.6"/><path d="${zig(bm + 3)}" fill="none" stroke="#1E2340" stroke-width="1.6"/>
+    </g>` : '';
+  const squeezeNote = squeezed
+    ? `<span class="nts" title="${esc(t('squeezed', { pct: Math.round(k / k0 * 100) }))}">${esc(t('notToScale'))}</span>` : '';
+  const line = xs.map((x, i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${ys[i].toFixed(1)}`).join(' ');
+  const area = `${line} L${xs[4]} ${H} L${xs[0]} ${H} Z`;
+  const gid = 'pg' + s.cnn;
+  const labels = p.slopes.map((sl, i) => {
+    const x = (xs[i] + xs[i + 1]) / 2;
+    const up = sl > 0.05, col = Math.abs(sl) < 2 ? '#545B7F' : up ? '#D61F63' : '#0A7F99';
+    const sign = Math.abs(sl) < 0.05 ? '' : up ? '↗ ' : '↘ ';
+    const a = Math.abs(sl), num = a >= 10 ? Math.round(a) : a.toFixed(1);
+    return `<text x="${x.toFixed(1)}" y="12" text-anchor="middle" font-size="11" font-weight="700" fill="${col}">${sign}${num}%</text>`;
+  }).join('');
+  const ticks = xs.slice(1, 4).map(x => `<line x1="${x.toFixed(1)}" y1="${T - 2}" x2="${x.toFixed(1)}" y2="${H}" stroke="#D6DCF0" stroke-dasharray="2 3"/>`).join('');
+  const dots = xs.map((x, i) => `<circle cx="${x.toFixed(1)}" cy="${ys[i].toFixed(1)}" r="3.5" fill="#fff" stroke="#1E2340" stroke-width="2"><title>${Math.round(ft[i])} ft</title></circle>`).join('');
+  const pct = (W / PROFILE_FULL_W * 100).toFixed(2) + '%';
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:${pct}" role="img" aria-label="${esc(t('profileTitle'))}: ${Math.round(ft[0])} ft to ${Math.round(ft[4])} ft">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF3D7F" stop-opacity=".35"/><stop offset="1" stop-color="#FFC53D" stop-opacity=".15"/></linearGradient></defs>
+    ${ticks}${refs}
+    <path d="${area}" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="#1E2340" stroke-width="2.2" stroke-linejoin="round"/>
+    ${dots}${labels}${breakMark}
+  </svg>
+  <div class="profile-cap" style="width:${pct}"><span><b>${esc(P(s.f))}</b> ${Math.round(ft[0])} ft</span>${squeezeNote}<span>${Math.round(ft[4])} ft <b>${esc(P(s.t))}</b></span></div>`;
+}
+// fill in slope + chart once elevation arrives (cards may have re-rendered meanwhile)
+function hydrateElevation() {
+  for (const s of state.results) {
+    if (Elev.has(s.cnn)) continue;
+    Elev.get(s).then(() => {
+      const li = document.querySelector(`.seg[data-cnn="${s.cnn}"]`);
+      if (!li) return;
+      li.querySelector('[data-slope]').innerHTML = slopeHTML(s);
+      li.querySelector('[data-profile]').innerHTML = profileHTML(s);
+    });
+  }
+}
 function setupResultsEvents() {
+  const list = $('seg-list');
+  list.addEventListener('mouseover', e => { const li = e.target.closest('.seg'); if (li) hoverSegFromCard(+li.dataset.cnn); });
+  list.addEventListener('mouseleave', () => hoverSegFromCard(null));
   $('seg-list').addEventListener('click', e => {
     const chip = e.target.closest('[data-copy]');
     if (chip) { copyText(chip.dataset.copy, t('copiedCnn', { cnn: chip.dataset.copy })); return; }
+    const rm = e.target.closest('[data-remove]');
+    if (rm) { removeCard(+rm.dataset.remove); return; }
     const li = e.target.closest('.seg'); if (!li) return;
     const cnn = +li.dataset.cnn;
     if (e.target.tagName !== 'INPUT') { const cb = li.querySelector('input'); cb.checked = !cb.checked; }
     toggleChecked(cnn, li.querySelector('input').checked);
   });
+}
+function removeCard(cnn) {
+  state.results = state.results.filter(s => s.cnn !== cnn);
+  state.checked.delete(cnn);
+  if (!state.results.length) state.title = '';
+  render(); writeHash();
 }
 function toggleChecked(cnn, on) {
   on ? state.checked.add(cnn) : state.checked.delete(cnn);
@@ -1061,6 +1374,21 @@ function toggleChecked(cnn, on) {
 }
 
 /* ---------- export ---------- */
+function elevFields(s) {
+  const p = Elev.peek(s.cnn);
+  const r1 = v => Math.round(v * 10) / 10;
+  if (!p) return { elev_from_ft: '', elev_to_ft: '', slope_pct: '', steepest_pct: '', profile_ft: '' };
+  return {
+    elev_from_ft: Math.round(p.elev[0] * M2FT), elev_to_ft: Math.round(p.elev[4] * M2FT),
+    slope_pct: r1(p.net), steepest_pct: r1(p.steepest),
+    profile_ft: p.elev.map(e => Math.round(e * M2FT)).join(' '),
+  };
+}
+async function exportSegs() {
+  const segs = checkedSegs();
+  await Promise.all(segs.map(s => Elev.get(s)));
+  return segs;
+}
 function record(s) {
   const sides = Logic.addressSides(s);
   const side = p => { const x = sides.find(y => y.parity === p); return x ? x.side : ''; };
@@ -1072,6 +1400,8 @@ function record(s) {
     supervisor_district: s.sup, zip_code: s.zip,
     nhood: s.nhood, analysis_neighborhood: s.anhood,
     layer: s.layer, active: s.active, accepted: s.accepted,
+    length_ft: fmtFt(s.len),
+    ...elevFields(s),
     link: linkFor([s]),
   };
 }
@@ -1151,6 +1481,41 @@ window.addEventListener('hashchange', () => { if (!writingHash && Logic.db) appl
 let map, mapReady = false;
 const EMPTY = { type: 'FeatureCollection', features: [] };
 const fc = features => ({ type: 'FeatureCollection', features });
+// midpoint along a segment, for labels that sit on the terrain in 3D
+// "900–988, 901–989": even range first, then odd
+function addrRanges(s) {
+  return Logic.addressSides(s).sort((a, b) => (a.parity === 'even' ? 0 : 1) - (b.parity === 'even' ? 0 : 1))
+    .map(x => `${x.from}–${x.to}`).join(', ');
+}
+// "2–79 " : lowest and highest address on the block, both sides together
+function addrSpan(s) {
+  const n = [...s.lf, ...s.rt].filter(x => x > 0);
+  return n.length ? `${Math.min(...n)}–${Math.max(...n)} ` : '';
+}
+// rotation (clockwise degrees) that lines text up with the block, kept right-side up
+function labelAngle(s) {
+  const a = s.coords[0], b = s.coords[s.coords.length - 1];
+  let deg = -Math.atan2(b[1] - a[1], (b[0] - a[0]) * Math.cos(37.76 * Math.PI / 180)) * 180 / Math.PI;
+  if (deg > 90) deg -= 180;
+  if (deg <= -90) deg += 180;
+  return deg;
+}
+function midpoint(s) {
+  const c = s.coords, half = s.len / 2;
+  let acc = 0;
+  const m = (a, b) => Math.hypot((b[0] - a[0]) * 88000, (b[1] - a[1]) * 111320);
+  for (let i = 1; i < c.length; i++) {
+    const d = m(c[i - 1], c[i]);
+    if (acc + d >= half && d > 0) { const k = (half - acc) / d; return [c[i - 1][0] + k * (c[i][0] - c[i - 1][0]), c[i - 1][1] + k * (c[i][1] - c[i - 1][1])]; }
+    acc += d;
+  }
+  return c[Math.floor(c.length / 2)];
+}
+const midFeature = (s, props = {}) => ({
+  type: 'Feature', id: s.cnn,
+  geometry: { type: 'Point', coordinates: midpoint(s) },
+  properties: { cnn: s.cnn, name: P(s.street), pub: s.isPublic, ...props },
+});
 const segFeature = (s, props = {}) => ({
   type: 'Feature', id: s.cnn,
   geometry: { type: 'LineString', coordinates: s.coords },
@@ -1165,8 +1530,9 @@ function initMap() {
     bounds: CONFIG.SF_BOUNDS,
     fitBoundsOptions: { padding: 20 },
     attributionControl: { compact: true },
+    maxTileCacheSize: 150,   // per source; keeps long sessions from piling up tiles
   });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
   return new Promise(res => map.on('load', res));
 }
 function addMapLayers() {
@@ -1174,12 +1540,34 @@ function addMapLayers() {
     attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' });
   map.addLayer({ id: 'bp-sat', type: 'raster', source: 'sat', layout: { visibility: 'none' } });
 
+  // Terrain: separate DEM sources for 3D and hillshade (MapLibre renders both better that way)
+  const dem = { type: 'raster-dem', tiles: [CONFIG.DEM_TILES], tileSize: 256, encoding: 'terrarium', maxzoom: 15,
+    attribution: 'Terrain tiles by Mapzen/AWS, CC0' };
+  map.addSource('dem-terrain', dem);
+  map.addSource('dem-hillshade', { ...dem });
+  // hillshade sits on the basemap, under the satellite layer and all Block Party layers
+  map.addLayer({ id: 'bp-hillshade', type: 'hillshade', source: 'dem-hillshade',
+    paint: {
+      'hillshade-exaggeration': 0.35,
+      'hillshade-shadow-color': '#3B4070',
+      'hillshade-highlight-color': '#FFFFFF',
+      'hillshade-accent-color': '#8A8FB8',
+      'hillshade-illumination-direction': 335,
+    } }, 'bp-sat');
+  // Terrain stays on at every tilt, so there's no jump when tilting.
+  map.setTerrain({ source: 'dem-terrain', exaggeration: CONFIG.TERRAIN_EXAGGERATION });
+
   map.addSource('all', { type: 'geojson', data: fc(Logic.db.segs.map(s => segFeature(s, { active: s.active }))) });
+  map.addSource('all-mid', { type: 'geojson', data: fc(Logic.db.segs.map(s => midFeature(s))) });
+  map.addSource('context-mid', { type: 'geojson', data: EMPTY });
+  map.addSource('results-mid', { type: 'geojson', data: EMPTY });
   map.addSource('street', { type: 'geojson', data: EMPTY });
   map.addSource('context', { type: 'geojson', data: EMPTY });
   map.addSource('results', { type: 'geojson', data: EMPTY });
   map.addSource('ends', { type: 'geojson', data: EMPTY });
   map.addSource('hover', { type: 'geojson', data: EMPTY });
+  map.addSource('preview', { type: 'geojson', data: EMPTY });
+  map.addSource('preview-cross', { type: 'geojson', data: EMPTY });
 
   map.addLayer({ id: 'bp-all', type: 'line', source: 'all', minzoom: 13,
     paint: { 'line-color': '#7D86B5', 'line-opacity': 0.45, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 3] } });
@@ -1187,11 +1575,21 @@ function addMapLayers() {
     paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 18 } });
   map.addLayer({ id: 'bp-street', type: 'line', source: 'street',
     paint: { 'line-color': '#6D4AF5', 'line-opacity': 0.55, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 18, 8] } });
+  // hovering a cross street in the lists: the matching blocks (grape) and the cross street itself (pool)
+  map.addLayer({ id: 'bp-preview-cross', type: 'line', source: 'preview-cross',
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#0EA5C6', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 18, 8] } });
+  map.addLayer({ id: 'bp-preview-casing', type: 'line', source: 'preview',
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#FFFFFF', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 9, 18, 22] } });
+  map.addLayer({ id: 'bp-preview', type: 'line', source: 'preview',
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#6D4AF5', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 5, 18, 14] } });
   map.addLayer({ id: 'bp-context', type: 'line', source: 'context',
     paint: { 'line-color': '#0EA5C6', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 18, 7] } });
   map.addLayer({ id: 'bp-cand', type: 'line', source: 'results', filter: ['!=', ['get', 'on'], true],
-    layout: { 'line-cap': 'round' },
-    paint: { 'line-color': '#6D4AF5', 'line-dasharray': [1.5, 1.2], 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 4, 18, 10] } });
+    layout: { 'line-cap': 'butt' },
+    paint: { 'line-color': '#6D4AF5', 'line-dasharray': [2, 1.6], 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 4, 18, 10] } });
   map.addLayer({ id: 'bp-sel-casing', type: 'line', source: 'results', filter: ['==', ['get', 'on'], true],
     layout: { 'line-cap': 'round' },
     paint: { 'line-color': '#FFC53D', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 10, 18, 24] } });
@@ -1204,10 +1602,28 @@ function addMapLayers() {
   map.addLayer({ id: 'bp-ends', type: 'circle', source: 'ends',
     paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 4, 18, 8], 'circle-color': '#fff', 'circle-stroke-color': '#1E2340', 'circle-stroke-width': 2.5 } });
   map.addLayer({ id: 'bp-context-label', type: 'symbol', source: 'context',
-    layout: { 'symbol-placement': 'line', 'text-field': ['get', 'name'], 'text-font': LABEL_FONT, 'text-size': 14, 'symbol-spacing': 250 },
+    layout: { 'symbol-placement': 'line', 'text-field': ['get', 'name'], 'text-font': LABEL_FONT, 'text-size': 14, 'symbol-spacing': 250,
+      'text-pitch-alignment': CONFIG.LINE_LABEL_PITCH_ALIGNMENT, 'text-rotation-alignment': 'map' },
     paint: { 'text-color': '#075E72', 'text-halo-color': '#fff', 'text-halo-width': 2.2 } });
-  map.addLayer({ id: 'bp-results-label', type: 'symbol', source: 'results',
-    layout: { 'symbol-placement': 'line-center', 'text-field': ['get', 'label'], 'text-font': LABEL_FONT, 'text-size': 15, 'text-offset': [0, -1.4], 'text-allow-overlap': false },
+  // Stacked label (street / CNN / address ranges) at each block's midpoint, turned to run along the
+  // street and printed on the ground. Point labels can have several lines; line labels can't.
+  map.addLayer({ id: 'bp-results-label', type: 'symbol', source: 'results-mid',
+    layout: { 'text-field': ['get', 'label'], 'text-font': LABEL_FONT, 'text-size': 13, 'text-line-height': 1.15,
+      'text-rotate': ['get', 'angle'], 'text-rotation-alignment': 'map', 'text-pitch-alignment': 'map',
+      'text-anchor': 'bottom', 'text-offset': [0, -0.9], 'text-max-width': 30 },
+    paint: { 'text-color': '#1E2340', 'text-halo-color': '#fff', 'text-halo-width': 2.5 } });
+
+  // 3D labels: when the map is tilted, labels that follow lines get tangled on the terrain, so we
+  // swap them for flat-on-screen labels at each block's midpoint (see setLabelMode).
+  const flat3d = { 'text-font': LABEL_FONT, 'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport', visibility: 'none' };
+  map.addLayer({ id: 'bp-all-label-3d', type: 'symbol', source: 'all-mid', minzoom: 15,
+    layout: { ...flat3d, 'text-field': ['get', 'name'], 'text-size': 12, 'text-padding': 12 },
+    paint: { 'text-color': '#3B4070', 'text-halo-color': '#fff', 'text-halo-width': 1.8 } });
+  map.addLayer({ id: 'bp-context-label-3d', type: 'symbol', source: 'context-mid',
+    layout: { ...flat3d, 'text-field': ['get', 'name'], 'text-size': 14, 'text-padding': 6 },
+    paint: { 'text-color': '#075E72', 'text-halo-color': '#fff', 'text-halo-width': 2.2 } });
+  map.addLayer({ id: 'bp-results-label-3d', type: 'symbol', source: 'results-mid',
+    layout: { ...flat3d, 'text-field': ['get', 'label'], 'text-size': 13, 'text-line-height': 1.15, 'text-max-width': 30, 'text-anchor': 'bottom', 'text-offset': [0, -0.6] },
     paint: { 'text-color': '#1E2340', 'text-halo-color': '#fff', 'text-halo-width': 2.5 } });
 
   // hover + click to add/remove
@@ -1217,10 +1633,13 @@ function addMapLayers() {
     const s = Logic.db.byCnn.get(f.properties.cnn);
     map.getCanvas().style.cursor = 'pointer';
     map.getSource('hover').setData(fc([segFeature(s)]));
-    popup.setLngLat(e.lngLat).setHTML(`<b>${esc(P(s.street))}</b><br>${esc(t('between', { a: P(s.f), b: P(s.t) }))}<br>CNN ${s.cnn}`).addTo(map);
+    const ranges = addrRanges(s);
+    popup.setLngLat(e.lngLat).setHTML(`<b>${esc(P(s.street))}</b><br>${esc(t('between', { a: P(s.f), b: P(s.t) }))}<br>CNN ${s.cnn}${ranges ? `<br>${esc(ranges)}` : ''}`).addTo(map);
+    hoverCardFromMap(s.cnn);
   });
   map.on('mouseleave', 'bp-all-hit', () => {
     map.getCanvas().style.cursor = ''; popup.remove(); map.getSource('hover').setData(EMPTY);
+    hoverCardFromMap(null);
   });
   map.on('click', 'bp-all-hit', e => {
     const f = e.features[0]; if (!f) return;
@@ -1229,22 +1648,136 @@ function addMapLayers() {
 
   $('bm-map').addEventListener('click', () => setBasemap(false));
   $('bm-sat').addEventListener('click', () => setBasemap(true));
+  $('btn-contours').addEventListener('click', () => {
+    const on = $('btn-contours').getAttribute('aria-pressed') !== 'true';
+    $('btn-contours').setAttribute('aria-pressed', on);
+    setContours(on);
+  });
+  $('btn-3d').addEventListener('click', () => {
+    const tilted = map.getPitch() > 5;
+    map.easeTo({ pitch: tilted ? 0 : 60, bearing: tilted ? 0 : map.getBearing(), duration: reducedMotion() ? 0 : 800 });
+  });
+  map.on('pitchend', () => $('btn-3d').setAttribute('aria-pressed', map.getPitch() > 5));
+  map.on('pitch', () => setLabelMode(map.getPitch() > LABEL_3D_PITCH));
+  map.on('pitchend', () => setLabelMode(map.getPitch() > LABEL_3D_PITCH));
+  collectLineLabelLayers();
+  basemapLabelIds = map.getStyle().layers.filter(l => l.type === 'symbol' && !l.id.startsWith('bp-')).map(l => l.id);
   mapReady = true;
   refreshMapFilter();
+}
+// Terrain is always on. Up to CONFIG.LABEL_3D_PITCH, labels follow the streets, printed on the ground.
+// Past it, they're swapped for flat-on-screen labels at each block's midpoint.
+const LABEL_3D_PITCH = CONFIG.LABEL_3D_PITCH;
+let lineLabelLayers = [], labels3d = false;
+function collectLineLabelLayers() {
+  lineLabelLayers = map.getStyle().layers.filter(l => {
+    if (l.type !== 'symbol' || l.id.endsWith('-3d')) return false;
+    const p = map.getLayoutProperty(l.id, 'symbol-placement');
+    return p === 'line' || p === 'line-center';
+  }).map(l => ({ id: l.id, vis: map.getLayoutProperty(l.id, 'visibility') || 'visible' }));
+  // basemap street names get the same treatment as ours
+  for (const l of lineLabelLayers) {
+    try {
+      map.setLayoutProperty(l.id, 'text-pitch-alignment', CONFIG.LINE_LABEL_PITCH_ALIGNMENT);
+      map.setLayoutProperty(l.id, 'text-rotation-alignment', 'map');
+    } catch {}
+  }
+}
+function setLabelMode(tilted) {
+  if (tilted === labels3d) return;
+  labels3d = tilted;
+  if (map.getLayer(CONTOUR_LABEL)) map.setLayoutProperty(CONTOUR_LABEL, 'visibility', tilted ? 'none' : 'visible');
+  for (const l of lineLabelLayers) map.setLayoutProperty(l.id, 'visibility', tilted ? 'none' : l.vis);
+  for (const id of ['bp-all-label-3d', 'bp-context-label-3d', 'bp-results-label-3d'])
+    map.setLayoutProperty(id, 'visibility', tilted ? 'visible' : 'none');
+  map.setLayoutProperty('bp-results-label', 'visibility', tilted ? 'none' : 'visible');
+}
+/* ---------- contours (ported from Selecter's terrain contours, feet, "fine" detail) ---------- */
+const CONTOUR_SRC = 'contour-source', CONTOUR_LINE = 'bp-contour-line', CONTOUR_MAJOR = 'bp-contour-major', CONTOUR_LABEL = 'bp-contour-label';
+// zoom: [line interval, labeled-line interval] in feet. All lines are drawn the same; the second
+// number only decides which lines get elevation labels.
+// Contours only appear from CONTOUR_MINZOOM in.
+const CONTOUR_MINZOOM = 13;
+const CONTOUR_THRESHOLDS = { 13: [40, 200], 14: [20, 100], 15: [10, 50] };
+let contourDem = null;
+function initContourDem() {
+  if (contourDem) return true;
+  if (!window.mlcontour) { console.warn('[contour] maplibre-contour not loaded'); return false; }
+  contourDem = new mlcontour.DemSource({ url: CONFIG.DEM_TILES, encoding: 'terrarium', maxzoom: 13, worker: false, cacheSize: 100 });
+  // Wrap addProtocol so maplibre-contour's handlers return {data: ArrayBuffer}, the only format
+  // MapLibre v5 can pass to its workers on Safari (same fix as Selecter).
+  const orig = maplibregl.addProtocol.bind(maplibregl);
+  maplibregl.addProtocol = (name, handler) => orig(name, async (params, abort) => {
+    const r = await handler(params, abort);
+    if (r == null) return { data: new ArrayBuffer(0) };
+    if (r instanceof ArrayBuffer) return { data: r };
+    if (ArrayBuffer.isView(r)) return { data: r.buffer.slice(0) };
+    if (r.data instanceof ArrayBuffer) return { data: r.data.slice(0) };
+    if (r.data) return { data: r.data };
+    if (typeof r.arrayBuffer === 'function') return { data: await r.arrayBuffer() };
+    return r;
+  });
+  contourDem.setupMaplibre(maplibregl);
+  maplibregl.addProtocol = orig;
+  return true;
+}
+function setContours(on) {
+  if (!mapReady) return;
+  for (const id of [CONTOUR_LABEL, CONTOUR_MAJOR, CONTOUR_LINE]) if (map.getLayer(id)) map.removeLayer(id);
+  if (map.getSource(CONTOUR_SRC)) map.removeSource(CONTOUR_SRC);
+  // hillshade off while contours are on, so the two don't muddle together
+  map.setLayoutProperty('bp-hillshade', 'visibility', on ? 'none' : 'visible');
+  if (!on || !initContourDem()) return;
+  map.addSource(CONTOUR_SRC, {
+    type: 'vector', maxzoom: 15,
+    tiles: [contourDem.contourProtocolUrl({ multiplier: 3.28084, thresholds: CONTOUR_THRESHOLDS,
+      contourLayer: 'contours', elevationKey: 'ele', levelKey: 'level', extent: 4096, buffer: 1 })],
+  });
+  const above0 = ['>', ['get', 'ele'], 0];
+  // under the basemap's labels (and so under satellite and all Block Party layers too)
+  const below = basemapLabelIds[0] || 'bp-sat';
+  map.addLayer({ id: CONTOUR_LINE, type: 'line', source: CONTOUR_SRC, 'source-layer': 'contours', minzoom: CONTOUR_MINZOOM,
+    filter: above0,
+    // white, so they read as terrain and not as the blue-gray clickable streets
+    paint: { 'line-color': '#FFFFFF', 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 0.6, 16, 0.9], 'line-opacity': 0.8 } }, below);
+  map.addLayer({ id: CONTOUR_LABEL, type: 'symbol', source: CONTOUR_SRC, 'source-layer': 'contours', minzoom: CONTOUR_MINZOOM,
+    filter: ['all', ['==', ['get', 'level'], 1], above0],
+    layout: { 'symbol-placement': 'line', 'text-field': ['concat', ['number-format', ['get', 'ele'], {}], ' ft'],
+      'text-font': ['Noto Sans Regular'], 'text-size': 10, visibility: labels3d ? 'none' : 'visible',
+      'text-pitch-alignment': CONFIG.LINE_LABEL_PITCH_ALIGNMENT, 'text-rotation-alignment': 'map' },
+    paint: { 'text-color': '#8A8478', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.5 } }, below);
+  arrangeLayers();
+  map.triggerRepaint();
+}
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Basemap labels (street and place names) normally sit under the satellite layer. In satellite mode we
+// lift them above it so people don't get lost, and lift the contours with them (just under the labels).
+let basemapLabelIds = [], satOn = false;
+function arrangeLayers() {
+  const target = satOn ? 'bp-all' : 'bp-sat';      // bp-all is the first Block Party layer above the satellite
+  for (const id of basemapLabelIds) map.moveLayer(id, target);
+  const firstLabel = basemapLabelIds[0] || target;
+  for (const id of [CONTOUR_LINE, CONTOUR_LABEL]) if (map.getLayer(id)) map.moveLayer(id, firstLabel);
+  // on satellite the clickable streets turn white, so contours go pale yellow to stay distinct
+  if (map.getLayer(CONTOUR_LINE)) map.setPaintProperty(CONTOUR_LINE, 'line-color', satOn ? '#FFE7A3' : '#FFFFFF');
 }
 function setBasemap(sat) {
   $('bm-map').setAttribute('aria-pressed', !sat);
   $('bm-sat').setAttribute('aria-pressed', sat);
+  satOn = sat;
   if (!mapReady) return;
+  arrangeLayers();
   map.setLayoutProperty('bp-sat', 'visibility', sat ? 'visible' : 'none');
   map.setPaintProperty('bp-all', 'line-color', sat ? '#FFFFFF' : '#7D86B5');
   map.setPaintProperty('bp-all', 'line-opacity', sat ? 0.5 : 0.45);
+  document.querySelector('.lg-other').setAttribute('stroke', sat ? '#B8BCD6' : '#7D86B5');
 }
 function refreshMapFilter() {
   if (!mapReady) return;
   const f = Logic.db.searchAll ? null : ['==', ['get', 'pub'], true];
   map.setFilter('bp-all', f);
   map.setFilter('bp-all-hit', f);
+  map.setFilter('bp-all-label-3d', f);
 }
 function toggleFromMap(s) {
   if (!s) return;
@@ -1261,6 +1794,48 @@ function toggleFromMap(s) {
     toast(t('added', { name: `${P(s.street)} (CNN ${s.cnn})` }));
   }
   render(); writeHash();
+  jumpToCard(s.cnn);
+}
+// Map hover -> highlight the matching card, and scroll to it if it's off screen (after a short pause
+// so sweeping the mouse across the map doesn't yank the list around).
+let mapHoverCnn = null, mapHoverTimer;
+function hoverCardFromMap(cnn) {
+  if (cnn === mapHoverCnn) return;
+  mapHoverCnn = cnn;
+  document.querySelectorAll('.seg.is-hover').forEach(el => el.classList.remove('is-hover'));
+  clearTimeout(mapHoverTimer);
+  if (cnn == null) return;
+  const li = document.querySelector(`.seg[data-cnn="${cnn}"]`);
+  if (!li) return;
+  li.classList.add('is-hover');
+  mapHoverTimer = setTimeout(() => {
+    const r = li.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight)
+      li.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
+  }, 300);
+}
+// Card hover -> highlight the block on the map, and pan to it if it's out of view
+let cardHoverCnn = null;
+function hoverSegFromCard(cnn) {
+  if (cnn === cardHoverCnn || !mapReady) return;
+  cardHoverCnn = cnn;
+  const s = cnn != null && Logic.db.byCnn.get(cnn);
+  map.getSource('hover').setData(s ? fc([segFeature(s)]) : EMPTY);
+  if (!s) return;
+  const b = map.getBounds();
+  if (!b.contains(s.coords[0]) || !b.contains(s.coords[s.coords.length - 1]))
+    map.easeTo({ center: midpoint(s), duration: reducedMotion() ? 0 : 500 });
+}
+function jumpToCard(cnn) {
+  const li = document.querySelector(`.seg[data-cnn="${cnn}"]`);
+  if (!li) return;
+  li.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
+  li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash');
+}
+function previewSegs(segs) {
+  if (!mapReady) return;
+  map.getSource('preview').setData(fc(segs.map(s => segFeature(s))));
+  map.getSource('preview-cross').setData(fc(segs.length ? Logic.contextSegs(segs).map(s => segFeature(s)) : []));
 }
 function drawStreet(segs) {
   if (!mapReady) return;
@@ -1272,13 +1847,21 @@ function drawResults() {
   if (segs.length) drawStreet([]);
   else if (state.street) drawStreet(Logic.streetSegs(state.street));
   else drawStreet([]);
-  map.getSource('results').setData(fc(segs.map(s => segFeature(s, {
+  const props = s => ({
     on: state.checked.has(s.cnn),
-    label: `${P(s.street)}${s.partners.length ? ` (${t(s.dividedSide)})` : ''}  ${s.cnn}`,
-  }))));
+    label: `${addrSpan(s)}${P(s.street)}${s.partners.length ? ` (${t(s.dividedSide)})` : ''}\nCNN ${s.cnn}`,
+    angle: labelAngle(s),
+  });
+  map.getSource('results').setData(fc(segs.map(s => segFeature(s, props(s)))));
+  map.getSource('results-mid').setData(fc(segs.map(s => midFeature(s, props(s)))));
   const shown = segs.filter(s => state.checked.has(s.cnn));
   const ctxBase = shown.length ? shown : segs;
-  map.getSource('context').setData(fc(Logic.contextSegs(ctxBase).map(s => segFeature(s))));
+  const ctx = Logic.contextSegs(ctxBase);
+  map.getSource('context').setData(fc(ctx.map(s => segFeature(s))));
+  // one 3D label per cross street (the segment nearest the selection)
+  const byName = new Map();
+  for (const s of ctx) if (!byName.has(s.street) || s.len < byName.get(s.street).len) byName.set(s.street, s);
+  map.getSource('context-mid').setData(fc([...byName.values()].map(s => midFeature(s))));
   const ends = new Map();
   for (const s of ctxBase) { ends.set(s.fn, s.coords[0]); ends.set(s.tn, s.coords[s.coords.length - 1]); }
   if (state.focusNode) ends.set(state.focusNode.cnn, [state.focusNode.x, state.focusNode.y]);
@@ -1320,6 +1903,7 @@ function drawBunting() {
   LANG = (h.lang && I18N[h.lang]) ? h.lang : (I18N[nav] ? nav : 'en');
   applyI18n();
   drawBunting();
+  if (window.innerWidth <= 860) $('legend').open = false;
   setupForm();
   setupResultsEvents();
   console.log(`[block-party] ${_BUILD_VERSION} · ${new Date().toLocaleString()}`);
