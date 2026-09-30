@@ -8,6 +8,7 @@ Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 | Path | What it is |
 |---|---|
 | `index.html` | The whole app (HTML, CSS, JS) |
+| `img/civic-joy.png` | Civic Joy Fund logo shown next to the title |
 | `data/streets.json` | Compact lookup data built from the DataSF exports (~2.5 MB, ~650 KB gzipped) |
 | `data/sf_streets.csv` | DataSF "Streets – Active and Retired" export (source) |
 | `data/sf_intersections.csv` | DataSF "Street Intersections" export (source, used for intersection lookups) |
@@ -42,6 +43,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 | `#street=dolores` | Street filled in, whole street shown |
 | `#street=dolores,27th` | Blocks around that intersection (preview of intersection mode) |
 | `&all=1` | Include retired, freeway, and paper streets |
+| `&minor=0` | Hide pedestrian paths and streets the city doesn't maintain |
 | `&lang=es` | Interface language, once a translation exists |
 
 Street names in the hash are matched the same way as the search box (case-insensitive, "27th" or "twenty seventh").

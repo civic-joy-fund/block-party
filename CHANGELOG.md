@@ -2,6 +2,17 @@
 
 All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
 
+## v19
+- Civic Joy Fund logo next to the "Block Party" title (`img/civic-joy.png`, new file).
+- Start over and Clear selections are small buttons, on one line with an **Options** toggle on the right. Options opens two checkboxes:
+  - "Include pedestrian paths and streets the city doesn't maintain" (new, checked by default). Unchecked, it hides pedestrian paths, private streets, and segments the city data marks as not accepted. Presidio and Fort Mason roads always stay visible. URL: `&minor=0`.
+  - "Include retired, freeway, and paper streets" (moved here).
+- Results: a full-width "Apply for a Block Party" button (placeholder; shows a "coming soon" note), with small CSV / JSON / Link copy buttons under it. The bottom Clear selections is a small button too.
+- Map key shows a contours row ("Contours, every 20 ft") while contours are on and visible, with the interval for the current zoom and a swatch that matches map or satellite mode.
+
+## v18
+- "The other cross street" list shows the direct matches (the other end of each block touching the first cross street) first, then a "Further along" separator, then the remaining cross streets in italics.
+
 ## v17
 - Contours at 80% opacity.
 - In satellite mode, the basemap's labels (street names, neighborhoods, places) move above the imagery so people don't get disoriented, and drop back under it on the map view.
