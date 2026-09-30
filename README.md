@@ -1,6 +1,8 @@
 # Block Party
 
 Find a San Francisco street block and its city ID (CNN) for a block party application.
+Live site: https://civic-joy-fund.github.io/block-party/
+
 Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 
 ## Files
@@ -38,7 +40,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 | Hash | Result |
 |---|---|
-| `#cnn=13060000` | One block, checked, map zoomed to it |
+| `#cnn=13060000` (e.g. https://civic-joy-fund.github.io/block-party/#cnn=13060000) | One block, checked, map zoomed to it |
 | `#cnn=4883101,4883201` | Several blocks (both sides of a divided street, or a run of blocks) |
 | `#street=dolores` | Street filled in, whole street shown |
 | `#street=dolores,27th` | Blocks around that intersection (preview of intersection mode) |
