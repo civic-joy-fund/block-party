@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v19 -->
+<!-- build: v20 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -33,6 +33,8 @@
   --body: "Figtree", "Avenir Next", "Segoe UI", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
+/* the hidden attribute always wins over display rules below (Options panel, legend rows, etc.) */
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   font-family: var(--body);
@@ -429,7 +431,7 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const _BUILD_VERSION = 'v19';
+const _BUILD_VERSION = 'v20';
 
 /* =====================================================================
    CONFIG

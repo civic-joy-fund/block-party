@@ -2,6 +2,9 @@
 
 All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
 
+## v20
+- Fixed: the Options panel ignored its toggle and was always open. Elements with display rules (Options panel, legend contours row, bottom Clear selections) now respect `hidden`.
+
 ## v19
 - Civic Joy Fund logo next to the "Block Party" title (`img/civic-joy.png`, new file).
 - Start over and Clear selections are small buttons, on one line with an **Options** toggle on the right. Options opens two checkboxes:
