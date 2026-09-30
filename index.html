@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v17 -->
+<!-- build: v19 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -78,6 +78,9 @@ button, input { font: inherit; color: inherit; }
 .head { padding-top: calc(env(safe-area-inset-top, 0px) + 8px); position: relative; }
 .bunting { display: block; width: calc(100% + 56px); margin-inline: -28px; height: 64px; }
 @media (max-width: 860px) { .bunting { width: calc(100% + 36px); margin-inline: -18px; } }
+.brand { display: flex; align-items: center; gap: 14px; margin: 6px 0 10px; }
+.brand .logo { width: clamp(52px, 8vw, 64px); height: auto; flex: none; }
+.brand h1 { margin: 0; }
 h1 {
   font-family: var(--display);
   font-weight: 800;
@@ -141,6 +144,12 @@ h1 {
 .listbox li .sub { font-size: 14px; color: var(--ink-soft); white-space: nowrap; }
 .listbox li[aria-selected="true"], .listbox li:hover { background: var(--grape-wash); }
 .listbox .empty { cursor: default; color: var(--ink-soft); }
+.listbox li.sep {
+  cursor: default; margin: 6px 4px 2px; padding: 8px 8px 2px; border-top: 1.5px solid var(--line); border-radius: 0;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft);
+}
+.listbox li.sep:hover { background: none; }
+.listbox li.dim > span:first-child { font-style: italic; }
 .listbox .empty:hover { background: none; }
 
 .modes {
@@ -155,7 +164,20 @@ h1 {
 .modes button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 2px 0 var(--line); }
 .hint { font-size: 14px; color: var(--ink-soft); margin: 6px 2px 0; }
 .foot-btns { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.lookup-foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin: 6px 0 22px; }
+.lookup-foot { margin: 6px 0 22px; }
+.foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.opt-toggle {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  border: 0; background: none; padding: 4px 2px; cursor: pointer;
+  font-size: 14px; font-weight: 600; color: var(--ink-soft);
+}
+.opt-toggle:hover { color: var(--ink); }
+.opt-toggle svg { width: 17px; height: 17px; }
+.opt-toggle .chev { width: 15px; height: 15px; transition: transform .15s; }
+.opt-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.opt-panel { display: grid; gap: 6px; margin-top: 10px; }
+.opt-panel .check { align-items: flex-start; }
+.opt-panel .check input { margin-top: 1px; flex: none; }
 .check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--grape); }
 .link-btn { border: 0; background: none; padding: 4px 0; font-size: 14px; font-weight: 600; color: var(--grape); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -166,7 +188,8 @@ h1 {
 .results-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.1; margin: 8px 0 4px; letter-spacing: -0.01em; }
 .results-sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 15px; }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.actions { display: grid; gap: 10px; margin-bottom: 16px; }
+.copy-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); }
 .btn {
   border: 2px solid var(--ink); border-radius: 999px;
   padding: 8px 16px; font-weight: 700; font-size: 15px;
@@ -176,6 +199,9 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 }
 .btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
 .btn.primary { background: var(--sun); }
+.btn.small { padding: 4px 12px; font-size: 13px; border-width: 1.5px; box-shadow: 0 2px 0 var(--ink); }
+.btn.small:active { transform: translateY(2px); }
+.btn.apply { display: block; width: 100%; padding: 12px 16px; font-size: 17px; }
 .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: 0 3px 0 var(--ink); }
 
 .seg-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
@@ -282,7 +308,10 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 <div class="app">
   <header class="head">
     <svg class="bunting" id="bunting" viewBox="0 0 600 64" preserveAspectRatio="none" aria-hidden="true"></svg>
-    <h1 data-i18n="title">Block Party</h1>
+    <div class="brand">
+      <img class="logo" src="img/civic-joy.png" alt="Civic Joy Fund" width="64" height="64">
+      <h1 data-i18n="title">Block Party</h1>
+    </div>
     <p class="intro" data-i18n="intro">Find the exact block for your street event, and get the city’s block ID (called a CNN) to include with your application.</p>
   </header>
 
@@ -331,10 +360,18 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
     </div>
 
     <div class="lookup-foot">
-      <label class="check"><input type="checkbox" id="search-all"><span data-i18n="searchAll">Include retired, freeway, and paper streets</span></label>
-      <div class="foot-btns">
-        <button type="button" class="link-btn" id="start-over" data-i18n="startOver">Start over</button>
-        <button type="button" class="link-btn" id="clear-sel" data-i18n="clearSel">Clear selections</button>
+      <div class="foot-row">
+        <button type="button" class="btn small" id="start-over" data-i18n="startOver">Start over</button>
+        <button type="button" class="btn small" id="clear-sel" data-i18n="clearSel">Clear selections</button>
+        <button type="button" class="opt-toggle" id="opt-toggle" aria-expanded="false" aria-controls="opt-panel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="15" cy="6" r="2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="17" cy="18" r="2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <span data-i18n="options">Options</span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </button>
+      </div>
+      <div class="opt-panel" id="opt-panel" hidden>
+        <label class="check"><input type="checkbox" id="include-minor" checked><span data-i18n="includeMinor">Include pedestrian paths and streets the city doesn’t maintain</span></label>
+        <label class="check"><input type="checkbox" id="search-all"><span data-i18n="searchAll">Include retired, freeway, and paper streets</span></label>
       </div>
     </div>
   </section>
@@ -364,6 +401,7 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
         <li><svg viewBox="0 0 28 12"><line x1="3" y1="6" x2="25" y2="6" stroke="#6D4AF5" stroke-opacity=".55" stroke-width="5"/></svg><span data-i18n="lgStreet">Your whole street</span></li>
         <li><svg viewBox="0 0 28 12"><circle cx="14" cy="6" r="4" fill="#fff" stroke="#1E2340" stroke-width="2"/></svg><span data-i18n="lgEnds">Block ends</span></li>
         <li><svg viewBox="0 0 28 12"><line class="lg-other" x1="3" y1="6" x2="25" y2="6" stroke="#7D86B5" stroke-opacity=".6" stroke-width="2"/></svg><span data-i18n="lgOther">Other streets</span></li>
+        <li id="lg-contours" hidden><svg viewBox="0 0 28 12"><rect class="lg-contour-bg" width="28" height="12" rx="2" fill="#E2DFDA"/><path class="lg-contour" d="M1 8 C8 2 17 11 27 4" fill="none" stroke="#FFFFFF" stroke-width="1.5"/></svg><span id="lg-contours-text"></span></li>
       </ul>
       <p class="legend-hint" data-i18n="lgHint">Tap any street to add it.</p>
     </details>
@@ -375,19 +413,23 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
     </div>
     <p class="results-sub" id="results-sub"></p>
     <div class="actions">
-      <button type="button" class="btn primary" id="copy-csv" data-i18n="copyCsv">Copy as CSV</button>
-      <button type="button" class="btn" id="copy-json" data-i18n="copyJson">Copy as JSON</button>
-      <button type="button" class="btn" id="copy-link" data-i18n="copyLink">Copy link</button>
+      <button type="button" class="btn primary apply" id="apply" data-i18n="apply">Apply for a Block Party</button>
+      <div class="copy-row">
+        <span data-i18n="copyLabel">Copy:</span>
+        <button type="button" class="btn small" id="copy-csv" data-i18n="copyCsvShort" title="Copy as CSV">CSV</button>
+        <button type="button" class="btn small" id="copy-json" data-i18n="copyJsonShort" title="Copy as JSON">JSON</button>
+        <button type="button" class="btn small" id="copy-link" data-i18n="copyLinkShort" title="Copy link">Link</button>
+      </div>
     </div>
     <ul class="seg-list" id="seg-list"></ul>
-    <button type="button" class="link-btn list-clear" id="clear-sel-bottom" data-i18n="clearSel">Clear selections</button>
+    <button type="button" class="btn small list-clear" id="clear-sel-bottom" data-i18n="clearSel">Clear selections</button>
     <p class="foot-note" id="foot-note"></p>
   </section>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const _BUILD_VERSION = 'v17';
+const _BUILD_VERSION = 'v19';
 
 /* =====================================================================
    CONFIG
@@ -411,6 +453,8 @@ const CONFIG = {
     'STREETS', 'STREETS_TI', 'STREETS_HUNTERSP', 'STREETS_YBI', 'STREETS_PEDESTRI',
     'UPROW', 'PRIVATE', 'PARKS', 'PARKS_NPS_PRESIDIO', 'PARKS_NPS_FTMASON'
   ]),
+  // National Park Service roads stay visible even when minor streets are hidden
+  ALWAYS_SHOWN_LAYERS: new Set(['PARKS_NPS_PRESIDIO', 'PARKS_NPS_FTMASON']),
   SF_BOUNDS: [[-122.52, 37.70], [-122.35, 37.835]],
 };
 
@@ -432,7 +476,11 @@ const I18N = {
     numLabel: 'Street number',
     numPh: 'For example, 3450',
     searchAll: 'Include retired, freeway, and paper streets',
-    startOver: 'Start over',
+    startOver: 'Start over', options: 'Options',
+    includeMinor: 'Include pedestrian paths and streets the city doesn’t maintain',
+    apply: 'Apply for a Block Party', applySoon: 'Applications open soon. For now, copy the details below.', copyLabel: 'Copy:',
+    copyCsvShort: 'CSV', copyJsonShort: 'JSON', copyLinkShort: 'Link',
+    lgContours: 'Contours, every {n} ft',
     clearSel: 'Clear selections',
     loading: 'Loading streets…',
     loadFailed: 'Street data couldn’t load. Check that data/streets.json is in the repo, then reload.',
@@ -470,6 +518,7 @@ const I18N = {
     north: 'north', south: 'south', east: 'east', west: 'west',
     dataNote: 'Street data from DataSF, Streets – Active and Retired, updated {date}.',
     typeMore: 'Keep typing to see more streets',
+    furtherAlong: 'Further along',
     btn3d: '3D', btnContours: 'Contours',
     length: 'Length', slope: 'Slope',
     slopeAvg: '{pct}% average', steepest: 'steepest part {pct}%',
@@ -628,6 +677,8 @@ const Logic = (() => {
         oneway: S[r[F.oneway]], classcode: r[F.classcode], dropped: S[r[F.date_dropped]],
         coords, len: lineLength(coords),
         isPublic: !!(flags & 1) && CONFIG.PUBLIC_LAYERS.has(layer),
+        // pedestrian paths and streets the city doesn't maintain (Presidio / Fort Mason roads excepted)
+        isMinor: !CONFIG.ALWAYS_SHOWN_LAYERS.has(layer) && (layer === 'STREETS_PEDESTRI' || layer === 'PRIVATE' || !(flags & 2)),
         partners: [], dividedSide: '',
       };
     });
@@ -662,12 +713,13 @@ const Logic = (() => {
       if (!segsAtNode.has(n)) segsAtNode.set(n, []);
       segsAtNode.get(n).push(s);
     }
-    DB = { segs, byCnn, byStreet, nodes, segsAtNode, dataAsOf: raw.data_as_of, searchAll: false, index: [] };
+    DB = { segs, byCnn, byStreet, nodes, segsAtNode, dataAsOf: raw.data_as_of, searchAll: false, includeMinor: true, index: [] };
     rebuildIndex();
     return DB;
   }
-  const eligible = s => DB.searchAll || s.isPublic;
+  const eligible = s => DB.searchAll || (s.isPublic && (DB.includeMinor || !s.isMinor));
   function setSearchAll(v) { DB.searchAll = v; rebuildIndex(); }
+  function setIncludeMinor(v) { DB.includeMinor = v; rebuildIndex(); }
   function rebuildIndex() {
     DB.index = [];
     for (const [name, list] of DB.byStreet) {
@@ -833,7 +885,7 @@ const Logic = (() => {
   }
 
   return {
-    load, prettyName, normTokens, searchStreets, resolveStreet, setSearchAll, streetSegs,
+    load, prettyName, normTokens, searchStreets, resolveStreet, setSearchAll, setIncludeMinor, streetSegs,
     crossStreetsInOrder, crossStreetsFrom, segsTouching, segsBetween, segsAtAddress, addressSides,
     intersectionNodes, segsAroundNodes, contextSegs, eligible: s => eligible(s),
     get db() { return DB; },
@@ -999,7 +1051,8 @@ function combobox(root, { getOptions, onSelect, onClear, onHover, showAllOnFocus
       list.innerHTML = input.value.trim() ? `<li class="empty">${esc(t('noMatch', { q: input.value.trim() }))}</li>` : '';
     } else {
       list.innerHTML = opts.map((o, i) =>
-        `<li role="option" id="${id}-${i}" data-i="${i}" aria-selected="false"><span>${esc(o.label)}</span>${o.sub ? `<span class="sub">${esc(o.sub)}</span>` : ''}</li>`
+        (o.sepBefore ? `<li role="separator" class="sep">${esc(o.sepBefore)}</li>` : '') +
+        `<li role="option" id="${id}-${i}" data-i="${i}" aria-selected="false"${o.dim ? ' class="dim"' : ''}><span>${esc(o.label)}</span>${o.sub ? `<span class="sub">${esc(o.sub)}</span>` : ''}</li>`
       ).join('') + (res.more ? `<li class="empty">${esc(t('typeMore'))}</li>` : '');
     }
     active = -1;
@@ -1082,7 +1135,13 @@ function setupForm() {
     getOptions: q => {
       const rows = Logic.crossStreetsFrom(state.street, state.from);
       const keep = new Set(filterNames(rows.map(r => r.name), q));
-      return { items: rows.filter(r => keep.has(r.name)).map(r => ({ value: r.name, label: P(r.name), sub: t('ftAway', { ft: roundFt(r.meters) }) })) };
+      // direct matches: the other end of each block that touches the first cross street
+      const direct = new Set(Logic.segsTouching(state.street, state.from).map(s => s.f === state.from ? s.t : s.f));
+      const item = r => ({ value: r.name, label: P(r.name), sub: t('ftAway', { ft: roundFt(r.meters) }) });
+      const near = rows.filter(r => keep.has(r.name) && direct.has(r.name)).map(item);
+      const far = rows.filter(r => keep.has(r.name) && !direct.has(r.name)).map(r => ({ ...item(r), dim: true }));
+      if (near.length && far.length) far[0].sepBefore = t('furtherAlong');
+      return { items: [...near, ...far] };
     },
     onSelect: name => selectTo(name),
     onHover: name => previewSegs(name ? Logic.segsBetween(state.street, state.from, name) : []),
@@ -1098,6 +1157,18 @@ function setupForm() {
     clearTimeout(numTimer);
     numTimer = setTimeout(() => lookupAddress(v), 250);
   });
+  $('opt-toggle').addEventListener('click', () => {
+    const open = $('opt-toggle').getAttribute('aria-expanded') !== 'true';
+    $('opt-toggle').setAttribute('aria-expanded', open);
+    $('opt-panel').hidden = !open;
+  });
+  $('include-minor').addEventListener('change', e => {
+    Logic.setIncludeMinor(e.target.checked);
+    refreshMapFilter();
+    rerunLookup();
+  });
+  // placeholder until the application form is connected
+  $('apply').addEventListener('click', () => toast(t('applySoon')));
   $('search-all').addEventListener('change', e => {
     Logic.setSearchAll(e.target.checked);
     refreshMapFilter();
@@ -1207,7 +1278,7 @@ function render() {
   $('results-title').textContent = state.title;
   const n = state.checked.size;
   $('results-sub').textContent = state.kind === 'pick' ? t('subPick', { n, total: segs.length }) : t('subAll', { n, total: segs.length });
-  ['copy-csv', 'copy-json', 'copy-link'].forEach(id => $(id).disabled = !n);
+  ['apply', 'copy-csv', 'copy-json', 'copy-link'].forEach(id => $(id).disabled = !n);
   $('seg-list').innerHTML = segs.map(cardHTML).join('');
   $('clear-sel-bottom').hidden = !segs.length;
   hydrateElevation();
@@ -1429,6 +1500,7 @@ function writeHash() {
   if (cnns.length) parts.push('cnn=' + cnns.join(','));
   else if (state.street) parts.push('street=' + encodeURIComponent(P(state.street).toLowerCase()).replace(/%20/g, '+'));
   if (Logic.db && Logic.db.searchAll) parts.push('all=1');
+  if (Logic.db && !Logic.db.includeMinor) parts.push('minor=0');
   if (LANG !== 'en') parts.push('lang=' + LANG);
   const h = parts.length ? '#' + parts.join('&') : '';
   if (h !== location.hash) { writingHash = true; history.replaceState(null, '', baseUrl() + location.search + h); writingHash = false; }
@@ -1436,11 +1508,12 @@ function writeHash() {
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   const list = k => (p.get(k) || '').split(',').map(s => s.trim()).filter(Boolean);
-  return { cnn: list('cnn').map(Number).filter(Boolean), street: list('street'), all: p.get('all') === '1', lang: p.get('lang') };
+  return { cnn: list('cnn').map(Number).filter(Boolean), street: list('street'), all: p.get('all') === '1', minor: p.get('minor') !== '0', lang: p.get('lang') };
 }
 function applyHash() {
   const h = readHash();
   if (h.lang && I18N[h.lang]) { LANG = h.lang; applyI18n(); }
+  if (h.minor !== Logic.db.includeMinor) { $('include-minor').checked = h.minor; Logic.setIncludeMinor(h.minor); refreshMapFilter(); }
   if (h.all !== Logic.db.searchAll) { $('search-all').checked = h.all; Logic.setSearchAll(h.all); refreshMapFilter(); }
   if (h.cnn.length) {
     const segs = h.cnn.map(c => Logic.db.byCnn.get(c)).filter(Boolean);
@@ -1514,12 +1587,12 @@ function midpoint(s) {
 const midFeature = (s, props = {}) => ({
   type: 'Feature', id: s.cnn,
   geometry: { type: 'Point', coordinates: midpoint(s) },
-  properties: { cnn: s.cnn, name: P(s.street), pub: s.isPublic, ...props },
+  properties: { cnn: s.cnn, name: P(s.street), pub: s.isPublic, minor: s.isMinor, ...props },
 });
 const segFeature = (s, props = {}) => ({
   type: 'Feature', id: s.cnn,
   geometry: { type: 'LineString', coordinates: s.coords },
-  properties: { cnn: s.cnn, name: P(s.street), pub: s.isPublic, ...props },
+  properties: { cnn: s.cnn, name: P(s.street), pub: s.isPublic, minor: s.isMinor, ...props },
 });
 const LABEL_FONT = ['Noto Sans Medium'];
 
@@ -1652,6 +1725,7 @@ function addMapLayers() {
     const on = $('btn-contours').getAttribute('aria-pressed') !== 'true';
     $('btn-contours').setAttribute('aria-pressed', on);
     setContours(on);
+    updateContourLegend();
   });
   $('btn-3d').addEventListener('click', () => {
     const tilted = map.getPitch() > 5;
@@ -1659,6 +1733,7 @@ function addMapLayers() {
   });
   map.on('pitchend', () => $('btn-3d').setAttribute('aria-pressed', map.getPitch() > 5));
   map.on('pitch', () => setLabelMode(map.getPitch() > LABEL_3D_PITCH));
+  map.on('zoomend', updateContourLegend);
   map.on('pitchend', () => setLabelMode(map.getPitch() > LABEL_3D_PITCH));
   collectLineLabelLayers();
   basemapLabelIds = map.getStyle().layers.filter(l => l.type === 'symbol' && !l.id.startsWith('bp-')).map(l => l.id);
@@ -1747,6 +1822,7 @@ function setContours(on) {
       'text-pitch-alignment': CONFIG.LINE_LABEL_PITCH_ALIGNMENT, 'text-rotation-alignment': 'map' },
     paint: { 'text-color': '#8A8478', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.5 } }, below);
   arrangeLayers();
+  updateContourLegend();
   map.triggerRepaint();
 }
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1761,12 +1837,26 @@ function arrangeLayers() {
   // on satellite the clickable streets turn white, so contours go pale yellow to stay distinct
   if (map.getLayer(CONTOUR_LINE)) map.setPaintProperty(CONTOUR_LINE, 'line-color', satOn ? '#FFE7A3' : '#FFFFFF');
 }
+// legend row for contours: only while they're on and visible, with the interval for this zoom
+function updateContourLegend() {
+  const li = $('lg-contours');
+  const on = $('btn-contours').getAttribute('aria-pressed') === 'true';
+  const z = map.getZoom();
+  li.hidden = !(on && z >= CONTOUR_MINZOOM);
+  if (li.hidden) return;
+  const keys = Object.keys(CONTOUR_THRESHOLDS).map(Number).sort((a, b) => a - b);
+  const key = keys.filter(k => k <= Math.floor(z)).pop() ?? keys[0];
+  $('lg-contours-text').textContent = t('lgContours', { n: CONTOUR_THRESHOLDS[key][0] });
+  li.querySelector('.lg-contour').setAttribute('stroke', satOn ? '#FFE7A3' : '#FFFFFF');
+  li.querySelector('.lg-contour-bg').setAttribute('fill', satOn ? '#4A5A3A' : '#E2DFDA');
+}
 function setBasemap(sat) {
   $('bm-map').setAttribute('aria-pressed', !sat);
   $('bm-sat').setAttribute('aria-pressed', sat);
   satOn = sat;
   if (!mapReady) return;
   arrangeLayers();
+  updateContourLegend();
   map.setLayoutProperty('bp-sat', 'visibility', sat ? 'visible' : 'none');
   map.setPaintProperty('bp-all', 'line-color', sat ? '#FFFFFF' : '#7D86B5');
   map.setPaintProperty('bp-all', 'line-opacity', sat ? 0.5 : 0.45);
@@ -1774,7 +1864,10 @@ function setBasemap(sat) {
 }
 function refreshMapFilter() {
   if (!mapReady) return;
-  const f = Logic.db.searchAll ? null : ['==', ['get', 'pub'], true];
+  const db = Logic.db;
+  const f = db.searchAll ? null
+    : db.includeMinor ? ['==', ['get', 'pub'], true]
+    : ['all', ['==', ['get', 'pub'], true], ['!=', ['get', 'minor'], true]];
   map.setFilter('bp-all', f);
   map.setFilter('bp-all-hit', f);
   map.setFilter('bp-all-label-3d', f);
