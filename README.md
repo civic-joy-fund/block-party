@@ -15,6 +15,7 @@ Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 | `data/sf_streets.csv` | DataSF "Streets – Active and Retired" export (source) |
 | `data/sf_intersections.csv` | DataSF "Street Intersections" export (source, used for intersection lookups) |
 | `scripts/build_data.py` | Rebuilds `data/streets.json` from the CSVs |
+| `scripts/match_blocks.py` | Matches free-text block descriptions in a CSV to CNNs |
 
 The GeoJSON export isn't used; the CSV has the same geometry as WKT.
 
@@ -27,6 +28,17 @@ python3 scripts/build_data.py
 ```
 
 Standard library only. Commit the new `data/streets.json`.
+
+## Matching free-text locations to CNNs
+
+`scripts/match_blocks.py` reads a CSV with a free-text location column (default: "Block you want to party on") and writes a copy with CNN, street, cross streets, address range, supervisor district, neighborhood, WKT geometry, a confidence level, the matching method, and notes. A description naming several blocks becomes several rows (`part` / `parts`).
+
+```
+python3 scripts/match_blocks.py applications.csv                       # writes applications_matched.csv
+python3 scripts/match_blocks.py applications.csv --column "Location"   # a different column
+```
+
+It understands "X between A and B", "NNN block of X", street addresses, intersections ("Haight and Masonic"), short streets named on their own, and several blocks in one description. Cross streets are checked against the streets that actually meet the named street, so misspellings and missing suffixes usually resolve. Confidence is `high` (street and both cross streets found), `medium` (block number, address, short street, or a spelling fix), `low` (intersection only, one cross street, conflicting details), or `none` (with a reason in `notes`). Review everything below `high`.
 
 ## Running locally
 
