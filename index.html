@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v20 -->
+<!-- build: v21 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -155,7 +155,7 @@ h1 {
 .listbox .empty:hover { background: none; }
 
 .modes {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
   padding: 5px; margin: 4px 0 18px;
   background: #E4E9FA; border-radius: 999px;
 }
@@ -219,6 +219,14 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 .seg.is-hover { box-shadow: 0 0 0 3px var(--grape-wash); }
 .seg.flash { animation: flash 1.2s ease-out; }
 @keyframes flash { 0%, 30% { box-shadow: 0 0 0 6px var(--sun); } 100% { box-shadow: 0 0 0 0 rgba(255,197,61,0); } }
+.seg .kind { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--grape); }
+.seg.is-checked .kind { color: #D61F63; }
+.seg-list .legs-head { display: grid; gap: 1px; margin-top: 6px; font-size: 15px; }
+.seg-list .legs-head span { font-size: 13px; color: var(--ink-soft); }
+.seg.leg { display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 46px; border-radius: 14px; font-size: 14px; }
+.seg.leg input[type=checkbox] { left: 14px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; }
+.seg.leg .leg-text { flex: 1; min-width: 0; }
+.seg.leg .leg-text span { color: var(--ink-soft); }
 .seg.is-checked { border-color: var(--pink); background: linear-gradient(90deg, var(--pink-wash), var(--card) 60%); }
 .seg input[type=checkbox] {
   position: absolute; left: 18px; top: 18px;
@@ -287,8 +295,10 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 .legend summary { font-weight: 700; cursor: pointer; list-style-position: inside; }
 .legend ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; }
 .legend li { display: flex; align-items: center; gap: 8px; }
-.legend svg { width: 28px; height: 12px; flex: none; overflow: visible; }
-.legend .lg-halo { filter: drop-shadow(0 0 1px rgba(30,35,64,.5)); }
+.legend .sw { display: inline-flex; align-items: center; gap: 3px; flex: none; }
+.legend .sw svg { width: 24px; height: 12px; overflow: visible; }
+.legend .sw svg.dot { width: 16px; height: 16px; }
+.legend .lg-halo svg { filter: drop-shadow(0 0 1px rgba(30,35,64,.5)); }
 .legend-hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-soft); }
 .map-loading { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 600; color: var(--ink-soft); z-index: 4; pointer-events: none; }
 .maplibregl-popup-content { font-family: var(--body); border-radius: 12px; padding: 8px 12px; font-size: 14px; box-shadow: 0 4px 0 rgba(30,35,64,.25); }
@@ -328,8 +338,9 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
     </div>
 
     <div class="modes" role="group" aria-label="How to find the block">
-      <button type="button" id="mode-cross" aria-pressed="true" data-i18n="modeCross">Between cross streets</button>
-      <button type="button" id="mode-addr" aria-pressed="false" data-i18n="modeAddr">By street address</button>
+      <button type="button" id="mode-cross" aria-pressed="true" data-i18n="modeCross">Cross streets</button>
+      <button type="button" id="mode-int" aria-pressed="false" data-i18n="modeInt">Intersection</button>
+      <button type="button" id="mode-addr" aria-pressed="false" data-i18n="modeAddr">Address</button>
     </div>
 
     <div id="cross-steps">
@@ -349,6 +360,17 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
           <ul class="listbox" role="listbox"></ul>
         </div>
         <p class="hint" data-i18n="toHint">Closest cross streets are listed first. Pick one further away to include several blocks.</p>
+      </div>
+    </div>
+
+    <div id="int-steps" hidden>
+      <div class="step is-disabled" id="step-int">
+        <label class="step-label" for="int-input"><span class="num n2">2</span><span data-i18n="intLabel">Cross street</span></label>
+        <div class="combo" id="int-combo">
+          <input class="field" id="int-input" type="text" autocomplete="off" spellcheck="false" disabled data-i18n-ph="crossPh" placeholder="Type or pick from the list">
+          <button class="clear-btn" type="button" aria-label="Clear">×</button>
+          <ul class="listbox" role="listbox"></ul>
+        </div>
       </div>
     </div>
 
@@ -396,14 +418,14 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
     <details class="legend" id="legend" open>
       <summary data-i18n="legend">Map key</summary>
       <ul>
-        <li><svg viewBox="0 0 28 12"><line x1="3" y1="6" x2="25" y2="6" stroke="#FFC53D" stroke-width="10" stroke-linecap="round"/><line x1="3" y1="6" x2="25" y2="6" stroke="#FF3D7F" stroke-width="5" stroke-linecap="round"/></svg><span data-i18n="lgChecked">Your blocks</span></li>
-        <li><svg viewBox="0 0 28 12"><line x1="3" y1="6" x2="25" y2="6" stroke="#0EA5C6" stroke-width="4"/></svg><span data-i18n="lgCross">Cross streets</span></li>
-        <li><svg viewBox="0 0 28 12"><line x1="1" y1="6" x2="27" y2="6" stroke="#6D4AF5" stroke-width="4" stroke-dasharray="6 4"/></svg><span data-i18n="lgUnchecked">Block matches</span></li>
-        <li><svg viewBox="0 0 28 12" class="lg-halo"><line x1="3" y1="6" x2="25" y2="6" stroke="#fff" stroke-width="10" stroke-linecap="round"/><line x1="3" y1="6" x2="25" y2="6" stroke="#6D4AF5" stroke-width="5" stroke-linecap="round"/></svg><span data-i18n="lgPreview">Block preview</span></li>
-        <li><svg viewBox="0 0 28 12"><line x1="3" y1="6" x2="25" y2="6" stroke="#6D4AF5" stroke-opacity=".55" stroke-width="5"/></svg><span data-i18n="lgStreet">Your whole street</span></li>
-        <li><svg viewBox="0 0 28 12"><circle cx="14" cy="6" r="4" fill="#fff" stroke="#1E2340" stroke-width="2"/></svg><span data-i18n="lgEnds">Block ends</span></li>
-        <li><svg viewBox="0 0 28 12"><line class="lg-other" x1="3" y1="6" x2="25" y2="6" stroke="#7D86B5" stroke-opacity=".6" stroke-width="2"/></svg><span data-i18n="lgOther">Other streets</span></li>
-        <li id="lg-contours" hidden><svg viewBox="0 0 28 12"><rect class="lg-contour-bg" width="28" height="12" rx="2" fill="#E2DFDA"/><path class="lg-contour" d="M1 8 C8 2 17 11 27 4" fill="none" stroke="#FFFFFF" stroke-width="1.5"/></svg><span id="lg-contours-text"></span></li>
+        <li><span class="sw"><svg viewBox="0 0 24 12"><line x1="3" y1="6" x2="21" y2="6" stroke="#FFC53D" stroke-width="10" stroke-linecap="round"/><line x1="3" y1="6" x2="21" y2="6" stroke="#FF3D7F" stroke-width="5" stroke-linecap="round"/></svg><svg viewBox="0 0 16 16" class="dot"><circle cx="8" cy="8" r="7.5" fill="#FFC53D"/><circle cx="8" cy="8" r="4.5" fill="#FF3D7F"/><circle cx="8" cy="8" r="1.8" fill="#fff"/></svg></span><span data-i18n="lgChecked">Your blocks / intersections</span></li>
+        <li><span class="sw"><svg viewBox="0 0 24 12"><line x1="1" y1="6" x2="23" y2="6" stroke="#6D4AF5" stroke-width="4" stroke-dasharray="6 4"/></svg><svg viewBox="0 0 16 16" class="dot"><circle cx="8" cy="8" r="6" fill="#fff" stroke="#6D4AF5" stroke-width="2" stroke-dasharray="3 2.5"/><circle cx="8" cy="8" r="2" fill="#6D4AF5"/></svg></span><span data-i18n="lgUnchecked">Matches</span></li>
+        <li><span class="sw lg-halo"><svg viewBox="0 0 24 12"><line x1="3" y1="6" x2="21" y2="6" stroke="#fff" stroke-width="10" stroke-linecap="round"/><line x1="3" y1="6" x2="21" y2="6" stroke="#6D4AF5" stroke-width="5" stroke-linecap="round"/></svg><svg viewBox="0 0 16 16" class="dot"><circle cx="8" cy="8" r="7" fill="#fff"/><circle cx="8" cy="8" r="5" fill="#6D4AF5"/></svg></span><span data-i18n="lgPreview">Preview</span></li>
+        <li><span class="sw"><svg viewBox="0 0 24 12"><line x1="1" y1="6" x2="23" y2="6" stroke="#0EA5C6" stroke-width="4"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span data-i18n="lgCross">Cross streets</span></li>
+        <li><span class="sw"><svg viewBox="0 0 24 12"><line x1="3" y1="6" x2="21" y2="6" stroke="#6D4AF5" stroke-opacity=".55" stroke-width="5"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span data-i18n="lgStreet">Your whole street</span></li>
+        <li><span class="sw"><svg viewBox="0 0 24 12"></svg><svg viewBox="0 0 16 16" class="dot"><circle cx="8" cy="8" r="4" fill="#fff" stroke="#1E2340" stroke-width="2"/></svg></span><span data-i18n="lgEnds">Corners</span></li>
+        <li><span class="sw"><svg viewBox="0 0 24 12"><line class="lg-other" x1="3" y1="6" x2="21" y2="6" stroke="#7D86B5" stroke-opacity=".6" stroke-width="2"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span data-i18n="lgOther">Other streets</span></li>
+        <li id="lg-contours" hidden><span class="sw"><svg viewBox="0 0 24 12"><rect class="lg-contour-bg" width="24" height="12" rx="2" fill="#E2DFDA"/><path class="lg-contour" d="M1 8 C7 2 15 11 23 4" fill="none" stroke="#FFFFFF" stroke-width="1.5"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span id="lg-contours-text"></span></li>
       </ul>
       <p class="legend-hint" data-i18n="lgHint">Tap any street to add it.</p>
     </details>
@@ -431,7 +453,7 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const _BUILD_VERSION = 'v20';
+const _BUILD_VERSION = 'v21';
 
 /* =====================================================================
    CONFIG
@@ -469,8 +491,8 @@ const I18N = {
     intro: 'Find the exact block for your street event, and get the city’s block ID (called a CNN) to include with your application.',
     streetLabel: 'Your street',
     streetPh: 'Start typing, like Valencia or 24th',
-    modeCross: 'Between cross streets',
-    modeAddr: 'By street address',
+    modeCross: 'Cross streets',
+    modeAddr: 'Address',
     fromLabel: 'One cross street',
     toLabel: 'The other cross street',
     crossPh: 'Type or pick from the list',
@@ -482,14 +504,17 @@ const I18N = {
     includeMinor: 'Include pedestrian paths and streets the city doesn’t maintain',
     apply: 'Apply for a Block Party', applySoon: 'Applications open soon. For now, copy the details below.', copyLabel: 'Copy:',
     copyCsvShort: 'CSV', copyJsonShort: 'JSON', copyLinkShort: 'Link',
-    lgContours: 'Contours, every {n} ft',
+    lgContours: '{n} ft contours',
     clearSel: 'Clear selections',
     loading: 'Loading streets…',
     loadFailed: 'Street data couldn’t load. Check that data/streets.json is in the repo, then reload.',
     bmMap: 'Map', bmSat: 'Satellite',
-    legend: 'Map key', lgChecked: 'Your blocks', lgCross: 'Cross streets', lgUnchecked: 'Block matches',
-    lgPreview: 'Block preview', lgStreet: 'Your whole street', lgEnds: 'Block ends', lgOther: 'Other streets',
-    lgHint: 'Tap any street to add it.', removeCard: 'Remove from list',
+    legend: 'Map key', lgChecked: 'Your blocks / intersections', lgCross: 'Cross streets', lgUnchecked: 'Matches',
+    lgPreview: 'Preview', lgStreet: 'Your whole street', lgEnds: 'Corners', lgOther: 'Other streets',
+    lgHint: 'Tap any street or corner to add it.',
+    modeInt: 'Intersection', intLabel: 'Cross street', meetsN: 'meets {n} times', and: 'and',
+    intKind: 'Intersection', streetsHere: 'Streets here', elevation: 'Elevation',
+    legsTitle: 'Blocks leading into it', legsHint: 'Check any you’re closing too.', sideTag: '{side} side', removeCard: 'Remove from list',
     copyCsv: 'Copy as CSV', copyJson: 'Copy as JSON', copyLink: 'Copy link',
     copiedCsv: 'Copied as CSV', copiedJson: 'Copied as JSON', copiedLink: 'Link copied', copiedCnn: 'Copied CNN {cnn}',
     noMatch: 'No streets match “{q}”',
@@ -767,22 +792,21 @@ const Logic = (() => {
     }
     return dist;
   }
-  function crossNodes(segs, name) {
-    const out = new Set();
-    for (const s of segs) { if (s.f === name) out.add(s.fn); if (s.t === name) out.add(s.tn); }
-    return out;
-  }
+  // Every street that meets these segments, with the intersection nodes where it does. A segment's
+  // f_st/t_st names only one street per end, so we also look at the other streets' segments at each node
+  // (e.g. Mullen Ave meets Montcalm St at the Brewster St node).
   function crossNamesWithNodes(segs) {
     const m = new Map();
+    const add = (name, node) => { if (!name) return; if (!m.has(name)) m.set(name, new Set()); m.get(name).add(node); };
+    const own = new Set(segs.map(s => s.street));
     for (const s of segs) {
-      for (const [name, node] of [[s.f, s.fn], [s.t, s.tn]]) {
-        if (!name) continue;
-        if (!m.has(name)) m.set(name, new Set());
-        m.get(name).add(node);
-      }
+      add(s.f, s.fn); add(s.t, s.tn);
+      for (const n of [s.fn, s.tn]) for (const o of DB.segsAtNode.get(n) || [])
+        if (!own.has(o.street) && eligible(o)) add(o.street, n);
     }
     return m;
   }
+  function crossNodes(segs, name) { return crossNamesWithNodes(segs).get(name) || new Set(); }
   const minAddr = s => Math.min(...[...s.lf, ...s.rt].filter(n => n > 0), Infinity);
   // cross streets in order along the street
   function crossStreetsInOrder(street) {
@@ -863,9 +887,43 @@ const Logic = (() => {
 
   /* ---- intersections (for #street=a,b) ---- */
   function intersectionNodes(a, b) {
-    const out = [];
-    for (const n of DB.nodes.values()) if (n.streets.includes(a) && n.streets.includes(b)) out.push(n);
-    return out;
+    const nodes = crossNodes(streetSegs(a), b);
+    return [...nodes].map(n => DB.nodes.get(n)).filter(Boolean);
+  }
+  /* ---- intersections as selectable items (their CNN is the node CNN) ---- */
+  function intItem(cnn, primary) {
+    const n = DB.nodes.get(cnn);
+    if (!n) return null;
+    const segs = (DB.segsAtNode.get(cnn) || []);
+    const streets = [...new Set([...segs.map(s => s.street), ...n.streets])].filter(Boolean);
+    if (primary && streets.includes(primary)) streets.sort((a, b) => (b === primary) - (a === primary));
+    const uniq = k => [...new Set(segs.map(s => s[k]).filter(Boolean))];
+    return {
+      kind: 'int', cnn, x: n.x, y: n.y, coords: [[n.x, n.y]], len: 0,
+      street: streets[0] || '', streets,
+      sup: uniq('sup').join(', '), zip: uniq('zip').join(', '), nhood: uniq('nhood').join(', '), anhood: uniq('anhood').join(', '),
+      active: true, accepted: true, layer: 'INTERSECTION', partners: [], dividedSide: '', isPublic: true,
+    };
+  }
+  // the intersection(s) where street meets cross, plus the blocks leading into them
+  function intersectionOf(street, cross) {
+    const nodes = [...crossNodes(streetSegs(street), cross)];
+    const ints = nodes.map(n => intItem(n, street)).filter(Boolean);
+    if (ints.length > 1) {   // meets more than once: tag each by its side
+      const cx = ints.reduce((a, i) => a + i.x, 0) / ints.length, cy = ints.reduce((a, i) => a + i.y, 0) / ints.length;
+      ints.forEach(i => { i.side = compass((i.x - cx) * COS_LAT, i.y - cy); });
+    }
+    const legs = new Map();
+    for (const n of nodes) for (const s of DB.segsAtNode.get(n) || []) if (eligible(s)) legs.set(s.cnn, s);
+    return { ints, legs: [...legs.values()] };
+  }
+  // direction of a block from an intersection
+  function legDirection(s, int) {
+    const far = s.fn === int.cnn ? s.coords[s.coords.length - 1] : s.coords[0];
+    return compass((far[0] - int.x) * COS_LAT, far[1] - int.y);
+  }
+  function item(cnn) {
+    return DB.byCnn.get(cnn) || (DB.nodes.has(cnn) ? intItem(cnn) : null);
   }
   function segsAroundNodes(nodes, streets) {
     const set = new Map();
@@ -890,6 +948,7 @@ const Logic = (() => {
     load, prettyName, normTokens, searchStreets, resolveStreet, setSearchAll, setIncludeMinor, streetSegs,
     crossStreetsInOrder, crossStreetsFrom, segsTouching, segsBetween, segsAtAddress, addressSides,
     intersectionNodes, segsAroundNodes, contextSegs, eligible: s => eligible(s),
+    intItem, intersectionOf, legDirection, item, crossNamesWithNodes: segs => crossNamesWithNodes(segs),
     get db() { return DB; },
   };
 })();
@@ -997,7 +1056,13 @@ const Elev = (() => {
     }
     return profiles.get(s.cnn);
   }
-  return { get, peek: cnn => done.get(cnn), has: cnn => done.has(cnn) };
+  // elevation at one point (intersections)
+  const points = new Map(), pdone = new Map();
+  function point(i) {
+    if (!points.has(i.cnn)) points.set(i.cnn, at([i.x, i.y]).catch(() => null).then(v => { pdone.set(i.cnn, v); return v; }));
+    return points.get(i.cnn);
+  }
+  return { get, peek: cnn => done.get(cnn), has: cnn => done.has(cnn), point, peekPoint: cnn => pdone.get(cnn), hasPoint: cnn => pdone.has(cnn) };
 })();
 
 /* =====================================================================
@@ -1114,7 +1179,7 @@ function combobox(root, { getOptions, onSelect, onClear, onHover, showAllOnFocus
   };
 }
 
-let streetBox, fromBox, toBox;
+let streetBox, fromBox, toBox, intBox;
 function setupForm() {
   streetBox = combobox($('street-combo'), {
     getOptions: q => {
@@ -1131,6 +1196,20 @@ function setupForm() {
     onSelect: name => selectFrom(name),
     onHover: name => previewSegs(name ? Logic.segsTouching(state.street, name) : []),
     onClear: () => { state.from = state.to = null; toBox.set(null, ''); toBox.enable(false); showStreetOverview(); },
+  });
+  intBox = combobox($('int-combo'), {
+    showAllOnFocus: true,
+    getOptions: q => {
+      const names = Logic.crossNamesWithNodes(Logic.streetSegs(state.street));
+      const order = Logic.crossStreetsInOrder(state.street).filter(n => names.has(n) && !/^(END|START|MID)\b/.test(n));
+      return { items: filterNames(order, q).map(n => {
+        const k = names.get(n).size;
+        return { value: n, label: P(n), sub: k > 1 ? t('meetsN', { n: k }) : '' };
+      }) };
+    },
+    onSelect: name => selectIntersection(name),
+    onHover: name => previewInts(name ? Logic.intersectionOf(state.street, name) : null),
+    onClear: () => { state.cross = null; showStreetOverview(); },
   });
   toBox = combobox($('to-combo'), {
     showAllOnFocus: true,
@@ -1151,6 +1230,7 @@ function setupForm() {
   });
 
   $('mode-cross').addEventListener('click', () => setMode('cross'));
+  $('mode-int').addEventListener('click', () => setMode('int'));
   $('mode-addr').addEventListener('click', () => setMode('addr'));
   let numTimer;
   $('num-input').addEventListener('input', e => {
@@ -1195,18 +1275,18 @@ const roundFt = m => { const ft = m * 3.28084; return ft < 1000 ? Math.round(ft 
 
 /* ---------- flow ---------- */
 function startOver({ keepView = false } = {}) {
-  Object.assign(state, { street: null, from: null, to: null, num: '', results: [], title: '', note: '', focusNode: null });
+  Object.assign(state, { street: null, from: null, to: null, cross: null, num: '', results: [], title: '', note: '', focusNode: null });
   state.checked.clear();
   streetBox.set(null, '');
-  fromBox.set(null, ''); toBox.set(null, ''); $('num-input').value = '';
-  fromBox.enable(false); toBox.enable(false); enableNum(false);
+  fromBox.set(null, ''); toBox.set(null, ''); intBox.set(null, ''); $('num-input').value = '';
+  fromBox.enable(false); toBox.enable(false); intBox.enable(false); enableNum(false);
   render(); writeHash();
   if (!keepView) resetView();
 }
 // Empties the block list (and the cross street / number fields) but keeps the street and the map view
 function clearSelections() {
-  state.from = state.to = null; state.num = ''; state.focusNode = null;
-  fromBox.set(null, ''); toBox.set(null, ''); toBox.enable(false);
+  state.from = state.to = state.cross = null; state.num = ''; state.focusNode = null;
+  fromBox.set(null, ''); toBox.set(null, ''); toBox.enable(false); intBox.set(null, '');
   $('num-input').value = '';
   setResults([], '', '');
 }
@@ -1215,15 +1295,17 @@ function setMode(mode) {
   state.mode = mode;
   $('mode-cross').setAttribute('aria-pressed', mode === 'cross');
   $('mode-addr').setAttribute('aria-pressed', mode === 'addr');
+  $('mode-int').setAttribute('aria-pressed', mode === 'int');
+  $('int-steps').hidden = mode !== 'int';
   $('cross-steps').hidden = mode !== 'cross';
   $('addr-steps').hidden = mode !== 'addr';
   rerunLookup();
 }
 function selectStreet(name) {
-  state.street = name; state.from = state.to = null; state.focusNode = null;
+  state.street = name; state.from = state.to = state.cross = null; state.focusNode = null;
   streetBox.set(name, P(name));
-  fromBox.set(null, ''); toBox.set(null, '');
-  fromBox.enable(true); toBox.enable(false); enableNum(true);
+  fromBox.set(null, ''); toBox.set(null, ''); intBox.set(null, '');
+  fromBox.enable(true); toBox.enable(false); intBox.enable(true); enableNum(true);
   showStreetOverview();
   if (state.mode === 'addr' && $('num-input').value) lookupAddress($('num-input').value);
 }
@@ -1240,6 +1322,22 @@ function selectFrom(name) {
   setResults(segs, t('blocksTouching', { street: P(state.street), cross: P(name) }), 'pick', []);
   fitSegs(segs);
 }
+// Intersection mode: the corner(s) where the street meets `name`, checked, plus the blocks leading in, unchecked
+function selectIntersection(name) {
+  state.cross = name;
+  intBox.set(name, P(name));
+  previewInts(null);
+  const { ints, legs } = Logic.intersectionOf(state.street, name);
+  if (!ints.length) { setResults([], '', ''); return; }
+  setResults([...ints, ...legs], intName(ints[0]), 'int', ints.map(i => i.cnn));
+  fitSegs([...ints, ...legs]);
+}
+const isInt = o => o && o.kind === 'int';
+function intName(i) {
+  const names = i.streets.map(P);
+  return names.length <= 2 ? names.join(` ${t('and')} `) : `${names.slice(0, -1).join(', ')} ${t('and')} ${names[names.length - 1]}`;
+}
+const itemName = o => isInt(o) ? intName(o) : P(o.street);
 function selectTo(name) {
   state.to = name;
   toBox.set(name, P(name));
@@ -1259,6 +1357,7 @@ function lookupAddress(v) {
 function rerunLookup() {
   if (!state.street) return render();
   if (state.mode === 'addr') return state.num ? lookupAddress(state.num) : showStreetOverview();
+  if (state.mode === 'int') return state.cross ? selectIntersection(state.cross) : showStreetOverview();
   if (state.to) return selectTo(state.to);
   if (state.from) return selectFrom(state.from);
   showStreetOverview();
@@ -1281,12 +1380,53 @@ function render() {
   const n = state.checked.size;
   $('results-sub').textContent = state.kind === 'pick' ? t('subPick', { n, total: segs.length }) : t('subAll', { n, total: segs.length });
   ['apply', 'copy-csv', 'copy-json', 'copy-link'].forEach(id => $(id).disabled = !n);
-  $('seg-list').innerHTML = segs.map(cardHTML).join('');
+  // Intersection results: intersection cards, then checked blocks as full cards, then the unchecked
+  // blocks leading into the intersection as compact rows.
+  const ints = segs.filter(isInt);
+  const intNodes = new Set(ints.map(i => i.cnn));
+  const isLeg = s => !isInt(s) && !state.checked.has(s.cnn) && (intNodes.has(s.fn) || intNodes.has(s.tn));
+  const full = segs.filter(s => !isLeg(s));
+  const legs = segs.filter(isLeg);
+  $('seg-list').innerHTML = full.map(s => isInt(s) ? intCardHTML(s) : cardHTML(s)).join('') +
+    (legs.length ? `<li class="legs-head"><b>${esc(t('legsTitle'))}</b><span>${esc(t('legsHint'))}</span></li>` + legs.map(s => legHTML(s, ints)).join('') : '');
   $('clear-sel-bottom').hidden = !segs.length;
   hydrateElevation();
   const d = Logic.db && Logic.db.dataAsOf;
   $('foot-note').textContent = d ? t('dataNote', { date: d.slice(0, 10) }) : '';
   drawResults();
+}
+function intCardHTML(i) {
+  const on = state.checked.has(i.cnn);
+  const elev = Elev.hasPoint(i.cnn) ? (Elev.peekPoint(i.cnn) == null ? '' : t('ft', { n: Math.round(Elev.peekPoint(i.cnn) * M2FT) })) : t('measuring');
+  return `<li class="seg int ${on ? 'is-checked' : ''}" data-cnn="${i.cnn}">
+    <input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(intName(i))}">
+    <div class="seg-top">
+      <div><div class="kind">${esc(t('intKind'))}</div><div class="seg-name">${esc(intName(i))}</div>
+      ${i.side ? `<div class="seg-between">${esc(t('sideTag', { side: t(i.side) }))}</div>` : ''}</div>
+      <div class="seg-btns">
+        <button type="button" class="cnn-chip" data-copy="${i.cnn}" title="Copy CNN"><small>CNN</small>${i.cnn}</button>
+        <button type="button" class="remove-btn" data-remove="${i.cnn}" title="${esc(t('removeCard'))}" aria-label="${esc(t('removeCard'))}: ${esc(intName(i))}">×</button>
+      </div>
+    </div>
+    <dl class="facts">
+      <dt>${esc(t('streetsHere'))}</dt><dd>${esc(i.streets.map(P).join(', '))}</dd>
+      <dt>${esc(t('district'))}</dt><dd>${esc(i.sup)}</dd>
+      <dt>${esc(t('zip'))}</dt><dd>${esc(i.zip)}</dd>
+      <dt>${esc(t('nhood'))}</dt><dd>${esc(i.nhood)}</dd>
+      <dt>${esc(t('anhood'))}</dt><dd>${esc(i.anhood)}</dd>
+      <dt>${esc(t('elevation'))}</dt><dd data-elev="${i.cnn}">${esc(elev)}</dd>
+    </dl>
+  </li>`;
+}
+// compact row for an unchecked block leading into a selected intersection
+function legHTML(s, ints) {
+  const at = ints.find(i => i.cnn === s.fn || i.cnn === s.tn);
+  const dir = at ? t(Logic.legDirection(s, at)) : '';
+  return `<li class="seg leg" data-cnn="${s.cnn}">
+    <input type="checkbox" aria-label="${esc(P(s.street))} ${esc(P(s.f))} – ${esc(P(s.t))}">
+    <div class="leg-text"><b>${esc(P(s.street))}</b> <span>${esc(t('between', { a: P(s.f), b: P(s.t) }))}${s.partners.length ? `, ${esc(t('sideTag', { side: t(s.dividedSide) }))}` : ''}</span></div>
+    ${dir ? `<span class="tag">${esc(dir.charAt(0).toUpperCase() + dir.slice(1))}</span>` : ''}
+  </li>`;
 }
 function cardHTML(s) {
   const on = state.checked.has(s.cnn);
@@ -1411,6 +1551,14 @@ function profileHTML(s) {
 // fill in slope + chart once elevation arrives (cards may have re-rendered meanwhile)
 function hydrateElevation() {
   for (const s of state.results) {
+    if (isInt(s)) {
+      if (!Elev.hasPoint(s.cnn)) Elev.point(s).then(v => {
+        const dd = document.querySelector(`[data-elev="${s.cnn}"]`);
+        if (dd) dd.textContent = v == null ? '' : t('ft', { n: Math.round(v * M2FT) });
+      });
+      continue;
+    }
+    if (!document.querySelector(`.seg[data-cnn="${s.cnn}"] [data-slope]`)) continue;   // compact rows skip the chart
     if (Elev.has(s.cnn)) continue;
     Elev.get(s).then(() => {
       const li = document.querySelector(`.seg[data-cnn="${s.cnn}"]`);
@@ -1459,14 +1607,24 @@ function elevFields(s) {
 }
 async function exportSegs() {
   const segs = checkedSegs();
-  await Promise.all(segs.map(s => Elev.get(s)));
+  await Promise.all(segs.map(s => isInt(s) ? Elev.point(s) : Elev.get(s)));
   return segs;
 }
+const wktOf = o => isInt(o) ? `POINT (${o.x.toFixed(5)} ${o.y.toFixed(5)})`
+  : `LINESTRING (${o.coords.map(c => `${c[0].toFixed(5)} ${c[1].toFixed(5)}`).join(', ')})`;
 function record(s) {
+  if (isInt(s)) {
+    const e = Elev.peekPoint(s.cnn);
+    const blank = Object.fromEntries(Object.keys(record(Logic.db.segs[0])).map(k => [k, '']));
+    return { ...blank, type: 'intersection', cnn: s.cnn, streetname: s.streets[0] || '',
+      from_street: s.streets.slice(1).join(' & '), to_street: '',
+      supervisor_district: s.sup, zip_code: s.zip, nhood: s.nhood, analysis_neighborhood: s.anhood,
+      elev_from_ft: e == null ? '' : Math.round(e * M2FT), wkt: wktOf(s), link: linkFor([s]) };
+  }
   const sides = Logic.addressSides(s);
   const side = p => { const x = sides.find(y => y.parity === p); return x ? x.side : ''; };
   return {
-    cnn: s.cnn, streetname: s.street, from_street: s.f, to_street: s.t,
+    type: 'block', cnn: s.cnn, streetname: s.street, from_street: s.f, to_street: s.t,
     lf_fadd: s.lf[0], lf_toadd: s.lf[1], rt_fadd: s.rt[0], rt_toadd: s.rt[1],
     odd_side: side('odd'), even_side: side('even'),
     divided_side: s.partners.length ? s.dividedSide : '',
@@ -1475,6 +1633,7 @@ function record(s) {
     layer: s.layer, active: s.active, accepted: s.accepted,
     length_ft: fmtFt(s.len),
     ...elevFields(s),
+    wkt: wktOf(s),
     link: linkFor([s]),
   };
 }
@@ -1518,8 +1677,24 @@ function applyHash() {
   if (h.minor !== Logic.db.includeMinor) { $('include-minor').checked = h.minor; Logic.setIncludeMinor(h.minor); refreshMapFilter(); }
   if (h.all !== Logic.db.searchAll) { $('search-all').checked = h.all; Logic.setSearchAll(h.all); refreshMapFilter(); }
   if (h.cnn.length) {
-    const segs = h.cnn.map(c => Logic.db.byCnn.get(c)).filter(Boolean);
-    if (!segs.length) return;
+    const items = h.cnn.map(c => Logic.item(c)).filter(Boolean);
+    if (!items.length) return;
+    const ints = items.filter(isInt);
+    if (ints.length) {
+      // an intersection link: open intersection mode on it, with the blocks leading in
+      const i = ints[0], a = i.streets[0], b = i.streets[1];
+      state.street = a; streetBox.set(a, P(a));
+      fromBox.enable(true); intBox.enable(true); enableNum(true); setMode('int');
+      state.cross = b || null; intBox.set(b || null, b ? P(b) : '');
+      const legs = new Map();
+      for (const x of ints) for (const s of Logic.db.segsAtNode.get(x.cnn) || []) if (Logic.eligible(s)) legs.set(s.cnn, s);
+      const extra = items.filter(o => !isInt(o));
+      extra.forEach(s => legs.set(s.cnn, s));
+      setResults([...ints, ...legs.values()], ints.length === 1 ? intName(i) : t('linkedBlocks'), 'int', items.map(o => o.cnn));
+      fitSegs([...ints, ...legs.values()]);
+      return;
+    }
+    const segs = items;
     // retired or non-public CNNs still load from a link
     const main = segs[0];
     state.street = main.street; state.focusNode = null;
@@ -1537,14 +1712,11 @@ function applyHash() {
     if (!a) return;
     selectStreet(a);
     if (h.street[1]) {
-      const b = Logic.resolveStreet(h.street[1]);
-      const nodes = b ? Logic.intersectionNodes(a, b) : [];
-      if (nodes.length) {
-        const segs = Logic.segsAroundNodes(nodes, [a, b]);
-        state.focusNode = nodes[0];
-        setResults(segs, t('aroundIntersection', { a: P(a), b: P(b) }), 'pick', []);
-        fitSegs(segs);
-      } else if (b) toast(t('noIntersection', { a: P(a), b: P(b) }));
+      // "27th" could be 27th St or 27th Ave: prefer the one that actually meets the first street
+      const crosses = Logic.crossNamesWithNodes(Logic.streetSegs(a));
+      const b = Logic.searchStreets(h.street[1], 50).items.map(e => e.name).find(n => crosses.has(n)) || Logic.resolveStreet(h.street[1]);
+      if (b && Logic.intersectionNodes(a, b).length) { setMode('int'); selectIntersection(b); }
+      else if (b) toast(t('noIntersection', { a: P(a), b: P(b) }));
     }
   }
 }
@@ -1642,6 +1814,10 @@ function addMapLayers() {
   map.addSource('ends', { type: 'geojson', data: EMPTY });
   map.addSource('hover', { type: 'geojson', data: EMPTY });
   map.addSource('preview', { type: 'geojson', data: EMPTY });
+  map.addSource('ints', { type: 'geojson', data: EMPTY });
+  map.addSource('preview-int', { type: 'geojson', data: EMPTY });
+  map.addSource('corners', { type: 'geojson', data: cornerData() });
+  addIntIcons();
   map.addSource('preview-cross', { type: 'geojson', data: EMPTY });
 
   map.addLayer({ id: 'bp-all', type: 'line', source: 'all', minzoom: 13,
@@ -1674,6 +1850,11 @@ function addMapLayers() {
   map.addLayer({ id: 'bp-hover', type: 'line', source: 'hover',
     layout: { 'line-cap': 'round' },
     paint: { 'line-color': '#1E2340', 'line-opacity': 0.35, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 8, 18, 20] } });
+  // every corner, clickable when zoomed in
+  map.addLayer({ id: 'bp-corners', type: 'circle', source: 'corners', minzoom: 16,
+    paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 16, 3.5, 19, 6], 'circle-color': '#fff', 'circle-stroke-color': '#1E2340', 'circle-stroke-width': 1.8 } });
+  map.addLayer({ id: 'bp-corners-hit', type: 'circle', source: 'corners', minzoom: 16,
+    paint: { 'circle-radius': 13, 'circle-opacity': 0 } });
   map.addLayer({ id: 'bp-ends', type: 'circle', source: 'ends',
     paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 4, 18, 8], 'circle-color': '#fff', 'circle-stroke-color': '#1E2340', 'circle-stroke-width': 2.5 } });
   map.addLayer({ id: 'bp-context-label', type: 'symbol', source: 'context',
@@ -1686,6 +1867,17 @@ function addMapLayers() {
     layout: { 'text-field': ['get', 'label'], 'text-font': LABEL_FONT, 'text-size': 13, 'text-line-height': 1.15,
       'text-rotate': ['get', 'angle'], 'text-rotation-alignment': 'map', 'text-pitch-alignment': 'map',
       'text-anchor': 'bottom', 'text-offset': [0, -0.9], 'text-max-width': 30 },
+    paint: { 'text-color': '#1E2340', 'text-halo-color': '#fff', 'text-halo-width': 2.5 } });
+
+  // intersections: selected, unchecked match, and preview icons (drawn to match the legend)
+  map.addLayer({ id: 'bp-ints', type: 'symbol', source: 'ints',
+    layout: { 'icon-image': ['case', ['==', ['get', 'on'], true], 'int-selected', 'int-match'],
+      'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  map.addLayer({ id: 'bp-preview-int', type: 'symbol', source: 'preview-int',
+    layout: { 'icon-image': 'int-preview', 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  map.addLayer({ id: 'bp-ints-label', type: 'symbol', source: 'ints', filter: ['==', ['get', 'on'], true],
+    layout: { 'text-field': ['get', 'label'], 'text-font': LABEL_FONT, 'text-size': 13, 'text-line-height': 1.15,
+      'text-anchor': 'left', 'text-offset': [1.4, 0], 'text-justify': 'left', 'text-max-width': 30 },
     paint: { 'text-color': '#1E2340', 'text-halo-color': '#fff', 'text-halo-width': 2.5 } });
 
   // 3D labels: when the map is tilted, labels that follow lines get tangled on the terrain, so we
@@ -1703,7 +1895,30 @@ function addMapLayers() {
 
   // hover + click to add/remove
   const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+  const onCorner = e => map.queryRenderedFeatures(e.point, { layers: ['bp-corners-hit', 'bp-ints'] }).length > 0;
+  map.on('mousemove', 'bp-corners-hit', e => {
+    const f = e.features[0]; if (!f) return;
+    const i = state.results.find(r => r.cnn === f.properties.cnn) || Logic.intItem(f.properties.cnn);
+    if (!i) return;
+    map.getCanvas().style.cursor = 'pointer';
+    map.getSource('hover').setData(EMPTY);
+    map.getSource('preview-int').setData(fc([pointFeature(i)]));
+    popup.setLngLat([i.x, i.y]).setHTML(`<b>${esc(intName(i))}</b><br>${esc(t('intKind'))}, CNN ${i.cnn}`).addTo(map);
+    hoverCardFromMap(i.cnn);
+  });
+  map.on('mouseleave', 'bp-corners-hit', () => {
+    map.getCanvas().style.cursor = ''; popup.remove(); map.getSource('preview-int').setData(EMPTY);
+    hoverCardFromMap(null);
+  });
+  const clickInt = e => {
+    const f = e.features[0]; if (!f) return;
+    const i = state.results.find(r => r.cnn === f.properties.cnn) || Logic.intItem(f.properties.cnn);
+    toggleFromMap(i);
+  };
+  map.on('click', 'bp-corners-hit', clickInt);
+  map.on('click', 'bp-ints', e => { if (!map.queryRenderedFeatures(e.point, { layers: ['bp-corners-hit'] }).length) clickInt(e); });
   map.on('mousemove', 'bp-all-hit', e => {
+    if (onCorner(e)) return;
     const f = e.features[0]; if (!f) return;
     const s = Logic.db.byCnn.get(f.properties.cnn);
     map.getCanvas().style.cursor = 'pointer';
@@ -1717,6 +1932,7 @@ function addMapLayers() {
     hoverCardFromMap(null);
   });
   map.on('click', 'bp-all-hit', e => {
+    if (onCorner(e)) return;
     const f = e.features[0]; if (!f) return;
     toggleFromMap(Logic.db.byCnn.get(f.properties.cnn));
   });
@@ -1852,6 +2068,34 @@ function updateContourLegend() {
   li.querySelector('.lg-contour').setAttribute('stroke', satOn ? '#FFE7A3' : '#FFFFFF');
   li.querySelector('.lg-contour-bg').setAttribute('fill', satOn ? '#4A5A3A' : '#E2DFDA');
 }
+// corner dots: one per intersection that touches a street people can pick
+function cornerData() {
+  const db = Logic.db, feats = [];
+  for (const n of db.nodes.values()) {
+    const segs = db.segsAtNode.get(n.cnn) || [];
+    if (segs.length < 2) continue;
+    feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [n.x, n.y] },
+      properties: { cnn: n.cnn, pub: segs.some(s => s.isPublic), minor: segs.filter(s => s.isPublic).every(s => s.isMinor) } });
+  }
+  return fc(feats);
+}
+// icons drawn on a canvas so they match the legend exactly (MapLibre circles can't be dashed)
+function addIntIcons() {
+  const make = (name, draw) => {
+    const r = 2, size = 32, c = document.createElement('canvas');
+    c.width = c.height = size * r;
+    const g = c.getContext('2d'); g.scale(r, r); draw(g, size / 2);
+    map.addImage(name, g.getImageData(0, 0, size * r, size * r), { pixelRatio: r });
+  };
+  const dot = (g, m, rad, fill) => { g.beginPath(); g.arc(m, m, rad, 0, Math.PI * 2); g.fillStyle = fill; g.fill(); };
+  make('int-selected', (g, m) => { dot(g, m, 13, '#FFC53D'); dot(g, m, 8, '#FF3D7F'); dot(g, m, 3, '#FFFFFF'); });
+  make('int-preview', (g, m) => { dot(g, m, 11, '#FFFFFF'); dot(g, m, 8, '#6D4AF5'); });
+  make('int-match', (g, m) => {
+    dot(g, m, 10, 'rgba(255,255,255,.9)');
+    g.beginPath(); g.arc(m, m, 10, 0, Math.PI * 2); g.setLineDash([4, 3]); g.lineWidth = 3; g.strokeStyle = '#6D4AF5'; g.stroke();
+    dot(g, m, 3.2, '#6D4AF5');
+  });
+}
 function setBasemap(sat) {
   $('bm-map').setAttribute('aria-pressed', !sat);
   $('bm-sat').setAttribute('aria-pressed', sat);
@@ -1873,6 +2117,8 @@ function refreshMapFilter() {
   map.setFilter('bp-all', f);
   map.setFilter('bp-all-hit', f);
   map.setFilter('bp-all-label-3d', f);
+  map.setFilter('bp-corners', f);
+  map.setFilter('bp-corners-hit', f);
 }
 function toggleFromMap(s) {
   if (!s) return;
@@ -1880,13 +2126,13 @@ function toggleFromMap(s) {
     state.results = [...state.results, s];
     if (!state.title) state.title = t('linkedBlocks');
     state.checked.add(s.cnn);
-    toast(t('added', { name: `${P(s.street)} (CNN ${s.cnn})` }));
+    toast(t('added', { name: `${itemName(s)} (CNN ${s.cnn})` }));
   } else if (state.checked.has(s.cnn)) {
     state.checked.delete(s.cnn);
-    toast(t('removed', { name: `${P(s.street)} (CNN ${s.cnn})` }));
+    toast(t('removed', { name: `${itemName(s)} (CNN ${s.cnn})` }));
   } else {
     state.checked.add(s.cnn);
-    toast(t('added', { name: `${P(s.street)} (CNN ${s.cnn})` }));
+    toast(t('added', { name: `${itemName(s)} (CNN ${s.cnn})` }));
   }
   render(); writeHash();
   jumpToCard(s.cnn);
@@ -1914,18 +2160,27 @@ let cardHoverCnn = null;
 function hoverSegFromCard(cnn) {
   if (cnn === cardHoverCnn || !mapReady) return;
   cardHoverCnn = cnn;
-  const s = cnn != null && Logic.db.byCnn.get(cnn);
-  map.getSource('hover').setData(s ? fc([segFeature(s)]) : EMPTY);
+  const s = cnn != null && (state.results.find(r => r.cnn === cnn) || Logic.item(cnn));
+  map.getSource('hover').setData(s && !isInt(s) ? fc([segFeature(s)]) : EMPTY);
+  map.getSource('preview-int').setData(s && isInt(s) ? fc([pointFeature(s)]) : EMPTY);
   if (!s) return;
   const b = map.getBounds();
   if (!b.contains(s.coords[0]) || !b.contains(s.coords[s.coords.length - 1]))
-    map.easeTo({ center: midpoint(s), duration: reducedMotion() ? 0 : 500 });
+    map.easeTo({ center: isInt(s) ? s.coords[0] : midpoint(s), duration: reducedMotion() ? 0 : 500 });
 }
 function jumpToCard(cnn) {
   const li = document.querySelector(`.seg[data-cnn="${cnn}"]`);
   if (!li) return;
   li.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
   li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash');
+}
+const pointFeature = i => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [i.x, i.y] }, properties: { cnn: i.cnn } });
+// hovering a cross street in intersection mode: the corner(s) in purple, the cross street in teal
+function previewInts(r) {
+  if (!mapReady) return;
+  map.getSource('preview-int').setData(r ? fc(r.ints.map(pointFeature)) : EMPTY);
+  const cross = r ? r.legs.filter(s => s.street !== state.street) : [];
+  map.getSource('preview-cross').setData(fc(cross.map(s => segFeature(s))));
 }
 function previewSegs(segs) {
   if (!mapReady) return;
@@ -1938,19 +2193,26 @@ function drawStreet(segs) {
 }
 function drawResults() {
   if (!mapReady) return;
-  const segs = state.results;
-  if (segs.length) drawStreet([]);
+  const ints = state.results.filter(isInt);
+  const segs = state.results.filter(s => !isInt(s));
+  map.getSource('ints').setData(fc(ints.map(i => ({ type: 'Feature', id: i.cnn,
+    geometry: { type: 'Point', coordinates: [i.x, i.y] },
+    properties: { cnn: i.cnn, on: state.checked.has(i.cnn), label: `${intName(i)}${i.side ? ` (${t(i.side)})` : ''}\nCNN ${i.cnn}` } }))));
+  if (state.results.length) drawStreet([]);
   else if (state.street) drawStreet(Logic.streetSegs(state.street));
   else drawStreet([]);
+  const anyChecked = segs.some(s => state.checked.has(s.cnn)) || ints.some(i => state.checked.has(i.cnn));
   const props = s => ({
     on: state.checked.has(s.cnn),
-    label: `${addrSpan(s)}${P(s.street)}${s.partners.length ? ` (${t(s.dividedSide)})` : ''}\nCNN ${s.cnn}`,
+    // once something is checked, only checked blocks get the big stacked label
+    label: anyChecked && !state.checked.has(s.cnn) ? '' : `${addrSpan(s)}${P(s.street)}${s.partners.length ? ` (${t(s.dividedSide)})` : ''}\nCNN ${s.cnn}`,
     angle: labelAngle(s),
   });
   map.getSource('results').setData(fc(segs.map(s => segFeature(s, props(s)))));
   map.getSource('results-mid').setData(fc(segs.map(s => midFeature(s, props(s)))));
   const shown = segs.filter(s => state.checked.has(s.cnn));
-  const ctxBase = shown.length ? shown : segs;
+  // around an intersection the blocks leading in are already drawn, so cross streets only follow checked blocks
+  const ctxBase = shown.length ? shown : ints.length ? [] : segs;
   const ctx = Logic.contextSegs(ctxBase);
   map.getSource('context').setData(fc(ctx.map(s => segFeature(s))));
   // one 3D label per cross street (the segment nearest the selection)
@@ -1966,6 +2228,10 @@ function fitSegs(segs) {
   if (!mapReady || !segs.length) return;
   const b = new maplibregl.LngLatBounds();
   segs.forEach(s => s.coords.forEach(c => b.extend(c)));
+  if (segs.every(isInt) && segs.length === 1) {   // a single corner: just center on it
+    map.easeTo({ center: segs[0].coords[0], zoom: Math.max(map.getZoom(), 17), duration: reducedMotion() ? 0 : 900 });
+    return;
+  }
   const small = window.innerWidth <= 860;
   map.fitBounds(b, { padding: small ? 50 : 90, maxZoom: 18, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900 });
 }
