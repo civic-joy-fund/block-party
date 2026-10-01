@@ -15,14 +15,16 @@ two blocks becomes two rows). Rows where nothing could be matched are kept, with
   source_row      1-based row number in the input file
   part / parts    which location in that row (1 of 2, ...)
   matched_text    the piece of the description this row came from
-  cnn             CNN(s) of the matched segment(s), separated by ";"
+  type            block or intersection
+  cnn             CNN(s) of the matched block segment(s) or intersection(s), separated by ";"
+  nearby_cnns     for intersections: the blocks touching it
   street          street name (city spelling)
   from_street     first cross street
   to_street       second cross street
   address_low / address_high   lowest and highest address on the matched segment(s)
   address_ranges  per-segment ranges, even range first ("900-988, 901-989"), separated by ";"
   supervisor_district, nhood
-  wkt             LINESTRING / MULTILINESTRING (WGS84 lon/lat), ready for mapping tools
+  wkt             LINESTRING / MULTILINESTRING for blocks, POINT / MULTIPOINT for intersections (WGS84)
   confidence      high / medium / low / none
   method          how it was matched: between, block, address, intersection, street_only, none
   notes           warnings, fuzzy spelling fixes, or why it couldn't be matched
@@ -125,8 +127,10 @@ class Streets:
         self.segs = segs
         self.node_streets = node_streets
         self.by_street = defaultdict(list)
+        self.node_xy = {}
         for s in segs:
             self.by_street[s["street"]].append(s)
+            self.node_xy.setdefault(s["fn"], s["pts"][0]); self.node_xy.setdefault(s["tn"], s["pts"][-1])
         self.by_base = defaultdict(set)      # "sanchez" -> {"SANCHEZ ST"}
         self.suffix_of = {}
         for name in self.by_street:
@@ -479,11 +483,17 @@ def parse(st, raw):
             for b in sorted(b_set):
                 nodes = st.intersection(a, b)
                 if nodes:
+                    # the intersection itself is the match; blocks touching it go in nearby_cnns
                     segs = [s for s in st.by_street[a] + st.by_street[b] if s["fn"] in nodes or s["tn"] in nodes]
-                    notes = [na, nb, "intersection only: all blocks touching it are listed; pick the right one"]
+                    notes = [na, nb]
+                    conf = "high" if len(nodes) == 1 and not (na or nb) else "medium"
+                    if len(nodes) > 1:
+                        notes.append(f"these streets meet at {len(nodes)} intersections; all listed")
                     if len(named) > 2:
-                        notes.append("more than two streets named")
-                    return [result("intersection", segs, "low", a, raw, b, "", notes)]
+                        conf = "low"; notes.append("more than two streets named")
+                    r = result("intersection", segs, conf, a, raw, b, "", notes)
+                    r["nodes"] = sorted(nodes)
+                    return [r]
 
     # 5. just a street name: "Coventry Court", "Rossi Avenue!", "LARCH", or a street at the start of a longer note
     place = re.search(r"\b(?:park|plaza|playground|center|centre|wharf|warf|commons|rec)\b", low)
@@ -533,6 +543,14 @@ def wkt(segs):
     return "LINESTRING " + lines[0] if len(lines) == 1 else "MULTILINESTRING (" + ", ".join(lines) + ")"
 
 
+def point_wkt(pts):
+    if not pts:
+        return ""
+    if len(pts) == 1:
+        return f"POINT ({pts[0][0]:.5f} {pts[0][1]:.5f})"
+    return "MULTIPOINT (" + ", ".join(f"({x:.5f} {y:.5f})" for x, y in pts) + ")"
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("csv")
@@ -545,7 +563,7 @@ def main():
     if rows and a.column not in rows[0]:
         sys.exit(f'column "{a.column}" not found; columns are: {list(rows[0])}')
     out_path = a.out or re.sub(r"\.csv$", "", a.csv) + "_matched.csv"
-    extra = ["source_row", "part", "parts", "matched_text", "cnn", "street", "from_street", "to_street",
+    extra = ["source_row", "part", "parts", "matched_text", "type", "cnn", "nearby_cnns", "street", "from_street", "to_street",
              "address_low", "address_high", "address_ranges", "supervisor_district", "nhood", "wkt",
              "confidence", "method", "notes"]
     counts = defaultdict(int)
@@ -565,6 +583,7 @@ def main():
                 results = [result("none", [], "none", "", row.get(a.column, "")[:80], notes=[f"error: {e}"])]
             for p, r in enumerate(results, 1):
                 segs = sorted({s["cnn"]: s for s in r["segs"]}.values(), key=lambda s: s["cnn"])
+                nodes = r.get("nodes", [])
                 nums = [n for s in segs for n in (*s["lf"], *s["rt"]) if n > 0]
                 if r["from_street"]:
                     f_st, t_st = r["from_street"], r["to_street"]
@@ -572,13 +591,17 @@ def main():
                     f_st, t_st = (segs[0]["f"], segs[0]["t"]) if len(segs) == 1 else ("", "")
                 w.writerow({**row,
                     "source_row": i, "part": p, "parts": len(results), "matched_text": r["text"],
-                    "cnn": ";".join(str(s["cnn"]) for s in segs), "street": r["street"],
+                    "type": "intersection" if nodes else ("block" if segs else ""),
+                    "cnn": ";".join(str(n) for n in nodes) if nodes else ";".join(str(s["cnn"]) for s in segs),
+                    "nearby_cnns": ";".join(str(s["cnn"]) for s in segs) if nodes else "",
+                    "street": r["street"],
                     "from_street": f_st, "to_street": t_st,
                     "address_low": min(nums) if nums else "", "address_high": max(nums) if nums else "",
                     "address_ranges": "; ".join(ranges(s) for s in segs),
                     "supervisor_district": ";".join(sorted({str(s["sup"]) for s in segs if s["sup"]})),
                     "nhood": ";".join(sorted({s["nhood"] for s in segs if s["nhood"]})),
-                    "wkt": wkt(segs), "confidence": r["confidence"], "method": r["method"],
+                    "wkt": point_wkt([st.node_xy[n] for n in nodes if n in st.node_xy]) if nodes else wkt(segs),
+                    "confidence": r["confidence"], "method": r["method"],
                     "notes": "; ".join(r["notes"])})
                 counts[r["confidence"]] += 1
     print(f"wrote {out_path}: {len(rows)} input rows -> {sum(counts.values())} locations "

@@ -2,8 +2,21 @@
 
 All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
 
-## Unreleased
-- New `scripts/match_blocks.py`: matches free-text block descriptions in a CSV to CNNs, with street, cross streets, address ranges, WKT, confidence, method, and notes.
+## v21
+- **Intersection mode.** The mode switch is now Cross streets / Intersection / Address. Pick a street and a cross street to select the intersection itself (its CNN is the city's intersection CNN). Streets that meet more than once get one card per intersection, tagged by side.
+- Intersection cards show the streets that meet there, supervisor district, ZIP, neighborhoods (both values when the corner sits on a boundary), and elevation.
+- Blocks leading into a selected intersection appear as compact rows under "Blocks leading into it," with a direction tag; checking one turns it into a full block card.
+- Map: selected intersections are pink with a yellow ring and a name/CNN label; unchecked ones are a dashed purple ring; hovering a cross street in the list previews the corner in purple. Every corner is a clickable dot from zoom 16.
+- Cross street lists now include every street that meets at an intersection, not just the one named on each block (for example Mullen Ave at Montcalm St).
+- `#cnn=` accepts intersection CNNs; `#street=dolores,27th` opens that intersection, picking 27th St or 27th Ave by which one actually meets Dolores.
+- CSV/JSON exports add `type` (block or intersection) and `wkt` (LINESTRING or POINT).
+- Map key uses the combined layout: Your blocks / intersections, Matches, Preview, Cross streets, Your whole street, Corners, Other streets, and "20 ft contours."
+- Only checked blocks get the large stacked map label once anything is checked.
+
+## Matcher
+- `scripts/match_blocks.py` (new): matches free-text block descriptions in a CSV to CNNs, with street, cross streets, address ranges, WKT, confidence, method, and notes.
+- Intersections ("Haight and Masonic") now return the intersection CNN and a POINT, marked high when the streets meet once; the touching blocks go in `nearby_cnns`. New `type` column.
+
 
 ## v20
 - Fixed: the Options panel ignored its toggle and was always open. Elements with display rules (Options panel, legend contours row, bottom Clear selections) now respect `hidden`.

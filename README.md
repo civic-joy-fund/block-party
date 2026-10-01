@@ -19,6 +19,27 @@ Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 
 The GeoJSON export isn't used; the CSV has the same geometry as WKT.
 
+## Data sources
+
+From DataSF:
+
+- **Streets – Active and Retired** → `data/sf_streets.csv`
+  https://data.sf.gov/Geographic-Locations-and-Boundaries/Streets-Active-and-Retired/3psu-pn9h/about_data
+- **List of Intersections only** → `data/sf_intersections.csv`
+  https://data.sf.gov/Geographic-Locations-and-Boundaries/List-of-Intersections-only/sw2d-qfup/about_data
+
+The GeoJSON version of the streets dataset isn't needed; the CSV has the same geometry as WKT.
+
+### How the intersections file is used
+
+The site never loads `sf_intersections.csv` directly. `scripts/build_data.py` reads it and stores, for each intersection CNN, the list of streets that meet there; that list goes into `data/streets.json` next to the intersection's coordinates (which come from the street segments, since the CSV has none). An intersection's CNN is the same number the streets file uses for segment ends (`f_node_cnn` / `t_node_cnn`), and no CNN is both a segment and an intersection.
+
+What it adds beyond the streets file: for about 615 of the ~9,800 intersections, it names a street that no segment in the streets file touches at that corner. Those names appear in the intersection card's "Streets here" line, the intersection's name, the `from_street` column in exports, and the CSV matcher's cross street checks. The site's cross street dropdowns are built from segments, so those names don't appear there.
+
+If the CSV is missing when you rebuild, `build_data.py` prints a warning and falls back to street names taken from the segments; everything still works without those extra names.
+
+Not used yet: the `theOrder` column (the city's order of cross streets along each street), which could replace the distance calculation used to sort the cross street dropdowns.
+
 ## Updating the data
 
 Drop fresh exports into `data/` with the same names, then:
@@ -38,6 +59,8 @@ python3 scripts/match_blocks.py applications.csv                       # writes 
 python3 scripts/match_blocks.py applications.csv --column "Location"   # a different column
 ```
 
+Intersections come back as the intersection's own CNN with a POINT in `wkt` (`type` = intersection), with the touching blocks in `nearby_cnns`.
+
 It understands "X between A and B", "NNN block of X", street addresses, intersections ("Haight and Masonic"), short streets named on their own, and several blocks in one description. Cross streets are checked against the streets that actually meet the named street, so misspellings and missing suffixes usually resolve. Confidence is `high` (street and both cross streets found), `medium` (block number, address, short street, or a spelling fix), `low` (intersection only, one cross street, conflicting details), or `none` (with a reason in `notes`). Review everything below `high`.
 
 ## Running locally
@@ -55,7 +78,8 @@ python3 -m http.server 8000   # then open http://localhost:8000
 | `#cnn=13060000` (e.g. https://civic-joy-fund.github.io/block-party/#cnn=13060000) | One block, checked, map zoomed to it |
 | `#cnn=4883101,4883201` | Several blocks (both sides of a divided street, or a run of blocks) |
 | `#street=dolores` | Street filled in, whole street shown |
-| `#street=dolores,27th` | Blocks around that intersection (preview of intersection mode) |
+| `#street=dolores,27th` | That intersection, in intersection mode |
+| `#cnn=21900000` | An intersection by its CNN (intersection and block CNNs never overlap) |
 | `&all=1` | Include retired, freeway, and paper streets |
 | `&minor=0` | Hide pedestrian paths and streets the city doesn't maintain |
 | `&lang=es` | Interface language, once a translation exists |
