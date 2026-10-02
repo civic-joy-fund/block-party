@@ -16,6 +16,10 @@ Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 | `data/sf_intersections.csv` | DataSF "Street Intersections" export (source, used for intersection lookups) |
 | `scripts/build_data.py` | Rebuilds `data/streets.json` from the CSVs |
 | `scripts/match_blocks.py` | Matches free-text block descriptions in a CSV to CNNs |
+| `striping/index.html` | Striping diagram map: hover a street to preview SFMTA's striping diagram, click to open the PDF |
+| `scripts/build_striping.py` | Reads SFMTA's file index, links each striping PDF to CNNs, writes `data/striping.json`, logs changes to `data/striping_changes.json` |
+| `scripts/render_striping_previews.py` | Renders preview images of the PDFs into `striping/previews/` |
+| `.github/workflows/striping.yml` | Weekly job that runs the two scripts above and commits the results |
 
 The GeoJSON export isn't used; the CSV has the same geometry as WKT.
 
@@ -62,6 +66,16 @@ python3 scripts/match_blocks.py applications.csv --column "Location"   # a diffe
 Intersections come back as the intersection's own CNN with a POINT in `wkt` (`type` = intersection), with the touching blocks in `nearby_cnns`.
 
 It understands "X between A and B", "NNN block of X", street addresses, intersections ("Haight and Masonic"), short streets named on their own, and several blocks in one description. Cross streets are checked against the streets that actually meet the named street, so misspellings and missing suffixes usually resolve. Confidence is `high` (street and both cross streets found), `medium` (block number, address, short street, or a spelling fix), `low` (intersection only, one cross street, conflicting details), or `none` (with a reason in `notes`). Review everything below `high`.
+
+## Striping diagram map
+
+`striping/` (live at https://civic-joy-fund.github.io/block-party/striping/) maps SFMTA's striping diagram PDFs onto the blocks they cover. Links: `#id=8218.2`.
+
+**Where the data comes from:** SFMTA's document library (https://streets-docs.apps.sfmta.com/?library=striping-diagrams&lang=en) is built from a file index at https://safitwebapps.blob.core.windows.net/$web/webappsindex.json. `scripts/build_striping.py` keeps the `Striping Drawings/` PDFs, parses each file name (`2-Fulton St_str-7970.1 (42nd Ave to 34th Ave).pdf` → series 2, Fulton St, ID 7970.1, 42nd Ave to 34th Ave), and finds the blocks between the cross streets with the same matcher as `match_blocks.py`. Each diagram gets a confidence and notes; the ones it can't place are listed under "Diagrams not on the map." The `03_Detail STR` standard drawings aren't locations and are skipped. When several uploads share an ID, the newest is shown.
+
+**Keeping it current:** the weekly GitHub Action rebuilds `data/striping.json`, renders previews only for new or changed PDFs, and appends what changed to `data/striping_changes.json` (added, removed, renamed with the same ID, re-uploaded with a new timestamp). After a few months that log shows whether SFMTA revises files in place, renames them (`r6`, `rev1`), or both. Run it by hand from the repo's Actions tab ("Refresh striping diagrams" → Run workflow); the first run renders all ~1,600 previews and takes a while.
+
+**Previews:** page 1 of each PDF as a 1000 px WebP (about 40–80 KB each, roughly 100 MB total). The map turns each preview so the street runs the same way as on the map, assuming the drawing reads left to right from the first cross street in the file name to the second.
 
 ## Running locally
 
