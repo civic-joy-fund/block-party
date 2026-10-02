@@ -2,6 +2,11 @@
 
 All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
 
+## Striping map s1
+- New `striping/` page: streets with an SFMTA striping diagram in teal; hover shows the diagram's blocks and a preview turned to match the street; click picks it, with Open PDF, file details, other sheets in the set, and other diagrams covering that block. Search by street or ID; `#id=` links.
+- `scripts/build_striping.py`, `scripts/render_striping_previews.py`, weekly `.github/workflows/striping.yml`.
+- Matcher: streets with gaps (15th St between Florida and Alabama) now match by position along the street; directional names like "South Van Ness" and "West Portal" resolve; nearby duplicate intersection points are treated as one.
+
 ## v21
 - **Intersection mode.** The mode switch is now Cross streets / Intersection / Address. Pick a street and a cross street to select the intersection itself (its CNN is the city's intersection CNN). Streets that meet more than once get one card per intersection, tagged by side.
 - Intersection cards show the streets that meet there, supervisor district, ZIP, neighborhoods (both values when the corner sits on a boundary), and elevation.

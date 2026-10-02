@@ -1,0 +1,27 @@
+# Refresh the striping diagram index and previews every Monday (and on demand from the Actions tab).
+name: Refresh striping diagrams
+on:
+  schedule:
+    - cron: "17 13 * * 1"     # Mondays, 6:17 am Pacific
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils && pip install pillow
+      - name: Rebuild data/striping.json (and log what changed)
+        run: python3 scripts/build_striping.py
+      - name: Render previews for new or changed diagrams
+        run: python3 scripts/render_striping_previews.py
+      - name: Commit if anything changed
+        run: |
+          git config user.name "striping-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/striping.json data/striping_changes.json striping/previews; do [ -e "$f" ] && git add "$f"; done
+          git diff --cached --quiet || git commit -m "Refresh striping diagrams $(date -u +%Y-%m-%d)"
+          git push

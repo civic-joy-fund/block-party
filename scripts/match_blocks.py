@@ -140,6 +140,31 @@ class Streets:
             self.by_base[key.replace(" ", "")].add(name)    # "ofarrell", "mission bay"
             self.suffix_of[name] = suf
         self.bases = list(self.by_base)
+        self._snap_nodes()
+
+    def _snap_nodes(self, meters=15):
+        """The city data sometimes uses two intersection CNNs a few meters apart where one street crosses
+        another (e.g. 15th St at Harrison). Treat ends that close together as the same point so a street
+        doesn't look broken when we walk along it."""
+        cell = 0.0003
+        grid = defaultdict(list)
+        for n, (x, y) in self.node_xy.items():
+            grid[(int(x / cell), int(y / cell))].append(n)
+        parent = {n: n for n in self.node_xy}
+        def find(n):
+            while parent[n] != n:
+                parent[n] = parent[parent[n]]; n = parent[n]
+            return n
+        for (gx, gy), nodes in grid.items():
+            near = [m for dx in (-1, 0, 1) for dy in (-1, 0, 1) for m in grid.get((gx + dx, gy + dy), ())]
+            for n in nodes:
+                x, y = self.node_xy[n]
+                for m in near:
+                    if m != n:
+                        mx, my = self.node_xy[m]
+                        if math.hypot((mx - x) * 88000, (my - y) * 111320) <= meters:
+                            parent[find(m)] = find(n)
+        self.snap = {n: find(n) for n in parent}
 
     # -- names
     def candidates(self, words, cutoff=0.86):
@@ -207,9 +232,11 @@ class Streets:
 
     # -- graph
     def dijkstra(self, segs, sources):
+        sn = lambda n: self.snap.get(n, n)
         adj = defaultdict(list)
         for s in segs:
-            adj[s["fn"]].append((s["tn"], s["len"])); adj[s["tn"]].append((s["fn"], s["len"]))
+            adj[sn(s["fn"])].append((sn(s["tn"]), s["len"])); adj[sn(s["tn"])].append((sn(s["fn"]), s["len"]))
+        sources = {sn(n) for n in sources}
         dist = {n: 0.0 for n in sources}
         pq = [(0.0, n) for n in sources]
         while pq:
@@ -223,15 +250,42 @@ class Streets:
     def between(self, street, a, b):
         segs = self.by_street[street]
         names = self.cross_names(street)
-        A, B = names.get(a, set()), names.get(b, set())
+        sn = lambda n: self.snap.get(n, n)
+        A, B = {sn(n) for n in names.get(a, set())}, {sn(n) for n in names.get(b, set())}
         dA, dB = self.dijkstra(segs, A), self.dijkstra(segs, B)
         D = min((dA[n] for n in B if n in dA), default=math.inf)
         if D == math.inf:
-            return [], math.inf
+            return self.between_by_position(street, a, b)
         tol = D * 1.3 + 25
-        out = [s for s in segs if min(dA.get(s["fn"], math.inf) + s["len"] + dB.get(s["tn"], math.inf),
-                                      dA.get(s["tn"], math.inf) + s["len"] + dB.get(s["fn"], math.inf)) <= tol]
+        out = [s for s in segs if min(dA.get(sn(s["fn"]), math.inf) + s["len"] + dB.get(sn(s["tn"]), math.inf),
+                                      dA.get(sn(s["tn"]), math.inf) + s["len"] + dB.get(sn(s["fn"]), math.inf)) <= tol]
         return out, D
+
+    def between_by_position(self, street, a, b):
+        """Fallback when the street has gaps (e.g. 15th St doesn't run between Florida and Alabama), so
+        there's no continuous path: take the street's segments that lie along the line between the two
+        cross streets."""
+        names = self.cross_names(street)
+        A = [self.node_xy[n] for n in names.get(a, ()) if n in self.node_xy]
+        B = [self.node_xy[n] for n in names.get(b, ()) if n in self.node_xy]
+        if not A or not B:
+            return [], math.inf
+        m = lambda p, q: math.hypot((q[0] - p[0]) * 88000, (q[1] - p[1]) * 111320)
+        pa, pb = min(((p, q) for p in A for q in B), key=lambda pq: m(*pq))
+        L = m(pa, pb)
+        if L < 1:
+            return [], math.inf
+        ax, ay = pa[0] * 88000, pa[1] * 111320
+        ux, uy = (pb[0] * 88000 - ax) / L, (pb[1] * 111320 - ay) / L
+        out = []
+        for s in self.by_street[street]:
+            mid = s["pts"][len(s["pts"]) // 2] if len(s["pts"]) > 2 else ((s["pts"][0][0] + s["pts"][-1][0]) / 2, (s["pts"][0][1] + s["pts"][-1][1]) / 2)
+            dx, dy = mid[0] * 88000 - ax, mid[1] * 111320 - ay
+            t = dx * ux + dy * uy
+            perp = abs(dx * uy - dy * ux)
+            if -5 <= t <= L + 5 and perp <= max(40, 0.08 * L):
+                out.append(s)
+        return (out, L * 1.5) if out else ([], math.inf)
 
     def in_block(self, street, block):
         lo, hi = block, block + 99
@@ -282,7 +336,8 @@ def street_phrase(st, text):
     for n in range(min(5, len(words)), 0, -1):
         for i in range(len(words) - n, -1, -1):
             win = words[i:i + n]
-            if win[0] in stop or (len(win) == 1 and (win[0] in stop or win[0] in SUFFIXES or win[0] in places)):
+            directional = win[0] in ("north", "south", "east", "west")
+            if (win[0] in stop and not (directional and n > 1)) or (len(win) == 1 and (win[0] in stop or win[0] in SUFFIXES or win[0] in places)):
                 continue
             hits, note = st.candidates(win)
             if hits:
