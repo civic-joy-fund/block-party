@@ -1117,7 +1117,7 @@
 },
 "8592c20ee391": {
 "path": "Striping Drawings/02_Numbered_Street/20th St/20th St_Str-8364.1 (Church St to Mission St).pdf",
-"modified": "2026-07-10T06:30:31+00:00",
+"modified": "2026-10-03T06:30:55+00:00",
 "w": 1000,
 "h": 647
 },
@@ -7037,12 +7037,6 @@
 "w": 1000,
 "h": 631
 },
-"120255d01d88": {
-"path": "Striping Drawings/N_Streets/Noe st/Noe St_Str-5170 (Duboce Ave to Market St).pdf",
-"modified": "2026-05-01T06:35:11+00:00",
-"w": 1000,
-"h": 634
-},
 "6b6871112de7": {
 "path": "Striping Drawings/N_Streets/Noe st/Noe st_str-6008 (20th St to Duboce St).pdf",
 "modified": "2026-09-22T06:30:26+00:00",
@@ -9485,12 +9479,6 @@
 "w": 1000,
 "h": 668
 },
-"08d08577e33c": {
-"path": "Striping Drawings/W_Streets/Waterville St.pdf",
-"modified": "2026-08-13T06:30:44+00:00",
-"w": 1000,
-"h": 668
-},
 "12d73bb62eb9": {
 "path": "Striping Drawings/W_Streets/Wawona st/Wawona St_Str-7878 (Great High Way to  39th Ave).pdf",
 "modified": "2025-06-11T06:30:21+00:00",
@@ -9724,5 +9712,11 @@
 "modified": "2024-08-15T21:37:25+00:00",
 "w": 1000,
 "h": 657
+},
+"7e2d068c27b9": {
+"path": "Striping Drawings/N_Streets/Noe st/Noe St_STR-8463.3 (Market St to Duboce Ave).pdf",
+"modified": "2026-10-03T06:30:56+00:00",
+"w": 1000,
+"h": 667
 }
 }
