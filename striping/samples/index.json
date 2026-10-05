@@ -1,0 +1,194 @@
+{
+ "8218.2": {
+  "id": "8218.2",
+  "file": "Valencia St_STR-8218.2 (21st St to 16th St) r6.pdf",
+  "url": "https://safitwebapps.blob.core.windows.net/$web/Striping%20Drawings/V_Streets/Valencia%20st/Valencia%20St_STR-8218.2%20%2821st%20St%20to%2016th%20St%29%20r6.pdf",
+  "pdf_kb": 443.9,
+  "images": [
+   {
+    "width": "1000",
+    "px": [
+     1000,
+     647
+    ],
+    "kb": 50,
+    "src": "samples/8218.2/1000.webp"
+   },
+   {
+    "width": "2000",
+    "px": [
+     2000,
+     1294
+    ],
+    "kb": 162,
+    "src": "samples/8218.2/2000.webp"
+   },
+   {
+    "width": "3000",
+    "px": [
+     3000,
+     1941
+    ],
+    "kb": 293,
+    "src": "samples/8218.2/3000.webp"
+   },
+   {
+    "width": "full",
+    "px": [
+     5100,
+     3300
+    ],
+    "kb": 635,
+    "src": "samples/8218.2/full.webp"
+   }
+  ],
+  "page_px": [
+   5100,
+   3300
+  ]
+ },
+ "7970.1": {
+  "id": "7970.1",
+  "file": "2-Fulton St_str-7970.1 (42nd Ave to 34th Ave).pdf",
+  "url": "https://safitwebapps.blob.core.windows.net/$web/Striping%20Drawings/F_Streets/Fulton%20St/2-Fulton%20St_str-7970.1%20%2842nd%20Ave%20to%2034th%20Ave%29.pdf",
+  "pdf_kb": 158.67,
+  "images": [
+   {
+    "width": "1000",
+    "px": [
+     1000,
+     647
+    ],
+    "kb": 27,
+    "src": "samples/7970.1/1000.webp"
+   },
+   {
+    "width": "2000",
+    "px": [
+     2000,
+     1294
+    ],
+    "kb": 75,
+    "src": "samples/7970.1/2000.webp"
+   },
+   {
+    "width": "3000",
+    "px": [
+     3000,
+     1941
+    ],
+    "kb": 129,
+    "src": "samples/7970.1/3000.webp"
+   },
+   {
+    "width": "full",
+    "px": [
+     5100,
+     3300
+    ],
+    "kb": 273,
+    "src": "samples/7970.1/full.webp"
+   }
+  ],
+  "page_px": [
+   5100,
+   3300
+  ]
+ },
+ "7728": {
+  "id": "7728",
+  "file": "11-Mission St_Str-7728 (Duboce Ave to South Van Ness Ave ).pdf",
+  "url": "https://safitwebapps.blob.core.windows.net/$web/Striping%20Drawings/M_Streets/Mission%20St/11-Mission%20St_Str-7728%20%28Duboce%20Ave%20to%20South%20Van%20Ness%20Ave%20%29.pdf",
+  "pdf_kb": 375.81,
+  "images": [
+   {
+    "width": "1000",
+    "px": [
+     1000,
+     647
+    ],
+    "kb": 44,
+    "src": "samples/7728/1000.webp"
+   },
+   {
+    "width": "2000",
+    "px": [
+     2000,
+     1294
+    ],
+    "kb": 139,
+    "src": "samples/7728/2000.webp"
+   },
+   {
+    "width": "3000",
+    "px": [
+     3000,
+     1941
+    ],
+    "kb": 253,
+    "src": "samples/7728/3000.webp"
+   },
+   {
+    "width": "full",
+    "px": [
+     5100,
+     3300
+    ],
+    "kb": 576,
+    "src": "samples/7728/full.webp"
+   }
+  ],
+  "page_px": [
+   5100,
+   3300
+  ]
+ },
+ "7694": {
+  "id": "7694",
+  "file": "Market St_Str-7694 (12th St to 8th St).pdf",
+  "url": "https://safitwebapps.blob.core.windows.net/$web/Striping%20Drawings/M_Streets/Market%20St/Market%20St_Str-7694%20%2812th%20St%20to%208th%20St%29.pdf",
+  "pdf_kb": 2217.57,
+  "images": [
+   {
+    "width": "1000",
+    "px": [
+     1000,
+     647
+    ],
+    "kb": 64,
+    "src": "samples/7694/1000.webp"
+   },
+   {
+    "width": "2000",
+    "px": [
+     2000,
+     1294
+    ],
+    "kb": 200,
+    "src": "samples/7694/2000.webp"
+   },
+   {
+    "width": "3000",
+    "px": [
+     3000,
+     1941
+    ],
+    "kb": 363,
+    "src": "samples/7694/3000.webp"
+   },
+   {
+    "width": "full",
+    "px": [
+     5100,
+     3300
+    ],
+    "kb": 816,
+    "src": "samples/7694/full.webp"
+   }
+  ],
+  "page_px": [
+   5100,
+   3300
+  ]
+ }
+}
