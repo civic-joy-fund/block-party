@@ -10,13 +10,17 @@ Usage (from the repo root):
   python3 scripts/build_striping.py                         # downloads the index
   python3 scripts/build_striping.py --index webappsindex.json   # or use a saved copy
 
+It also writes data/striping_review.csv (every drawing with its match confidence and notes, worst
+first) for reviewing in a spreadsheet, and applies corrections from data/striping_overrides.csv if
+that file exists (see the README).
+
 Each run also compares against the previous data/striping.json and appends what changed
 (new, removed, renamed/revised, re-uploaded files) to data/striping_changes.json, so we can see
 over time whether SFMTA revises files in place, renames them (r1, rev2...), or both.
 
 Standard library only. Reuses the street matcher in scripts/match_blocks.py.
 """
-import argparse, hashlib, json, os, re, sys, urllib.parse, urllib.request
+import argparse, csv, hashlib, json, os, re, sys, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -97,6 +101,32 @@ def nodes_of(segs):
     return sorted({n for s in segs for n in (s["fn"], s["tn"])})
 
 
+def strict_street(st, text):
+    """The street name in a file name has to name a real street on its own. (A looser search would
+    find "Hill St" inside "Forest Hill" or "41st Ave" inside "Islais creek_41,798".)"""
+    if not text:
+        return [], None
+    t = re.sub(r"^\s*\d+\s*[_\-\s]\s*(?=[a-z]{3})|^\s*(ti|ybi)\s*[_ ]\s*", "", text, flags=re.I)   # "3_Teresita", "TI_Avenue H"
+    t = re.split(r"\bformerly\b", t, flags=re.I)[0]                                        # "Bill Walsh Way Formerly- Giants Dr"
+    t = re.sub(r"\bsgt\b", "sergeant", t, flags=re.I)
+    for piece in re.split(r"\s+(?:&|and)\s+", t):                                          # "Waterville St & Conkling St"
+        words = [w for w in mb.norm_words(piece) if w not in ("the",)]
+        hits, note = st.candidates(words, cutoff=0.8)
+        if hits and note:
+            # a spelling fix has to keep the same number of words: "Congden" → "Congdon" yes,
+            # "Forest Hill" → "Forest Hill Path" no
+            base, _ = mb.split_name(words)
+            def same_shape(h):
+                hb = mb.split_name(mb.norm_words(h))[0]
+                extra = len(hb) - len(base)
+                # allow a missing middle initial ("Sgt John Young" → "Sergeant John V Young")
+                return extra == 0 or (extra == 1 and any(len(w) == 1 for w in hb))
+            hits = {h for h in hits if same_shape(h)}
+        if hits:
+            return sorted(hits, key=lambda n: -len(st.by_street[n])), note
+    return [], None
+
+
 def match(st, d):
     """add street, cross streets, CNNs, intersections, confidence, notes"""
     d.update(street="", from_street="", to_street="", cnns=[], intersections=[], confidence="none", method="", notes=[])
@@ -127,9 +157,13 @@ def match(st, d):
         a, b = m.group("a"), m.group("b")
         # "mccoppin otis sts" style: two names for one end; try each word pair
         r = None
-        for main in dict.fromkeys([street_text, folder]):
-            if not main:
-                continue
+        names, snote = strict_street(st, street_text)
+        if not names:
+            names, snote = strict_street(st, folder)
+        if not names:
+            d["notes"].append(f'"{d["street_text"]}" isn\'t a street name in the city data')
+            return d
+        for main in [n.lower() for n in names]:
             r = mb.try_between(st, main, a, b, d["file"], tail=f"{a}, {b}")
             if r and r["segs"]:
                 break
@@ -149,6 +183,9 @@ def match(st, d):
             if conf == "low" and r["to_street"]:
                 # "low" only because it's long (normal for a striping diagram) or a spelling fix
                 conf = "high" if not notes else "medium" if all(n.startswith("read ") for n in notes) else conf
+            if snote:
+                notes.insert(0, snote)
+                conf = "medium" if conf == "high" else conf
             d.update(street=r["street"], from_street=r["from_street"], to_street=r["to_street"],
                      cnns=sorted(s["cnn"] for s in segs), intersections=nodes_of(segs),
                      confidence=conf, method=r["method"], notes=notes)
@@ -159,9 +196,13 @@ def match(st, d):
             d["notes"].append(f'street "{d["street_text"]}" not found')
         return d
     # intersection: "(11th_ave Clement)", "(And Lawton St)", "(18th and Danvers)"
-    streets, note, _ = mb.street_phrase(st, street_text) if street_text else (set(), None, None)
-    if not streets and folder:
-        streets, note, _ = mb.street_phrase(st, folder)
+    names, note = strict_street(st, street_text)
+    if not names:
+        names, note = strict_street(st, folder)
+    streets = set(names)
+    if not streets:
+        d["notes"].append(f'"{d["street_text"]}" isn\'t a street name in the city data')
+        return d
     if streets and inside:
         cross_text = re.sub(r"^(and|at|&)\s+", "", inside)
         # "(Market St & Broadway St)": two cross streets that both meet the street = the stretch between them
@@ -214,6 +255,82 @@ def ends(st, d):
     return out if len(out) == 2 else []
 
 
+# ---------------------------------------------------------------- review file and corrections
+# data/striping_overrides.csv uses the same columns as striping_review.csv, so reviewed rows can be
+# copied straight over. Only these are read (other columns are ignored):
+#   file                    which drawing
+#   status                  "ok" = the match is right (shown as confirmed); "exclude" = keep it off the map
+#   fix_street, fix_from_street, fix_to_street   re-match with these names instead of the file name's
+#                           (fix_to_street empty = the intersection of fix_street and fix_from_street)
+#   review_note             why, shown with the diagram
+def load_overrides(path):
+    if not os.path.exists(path):
+        return {}
+    out = {}
+    for r in csv.DictReader(open(path, newline="", encoding="utf-8-sig")):
+        r = {k: (v or "").strip() for k, v in r.items() if k}
+        if r.get("file") and (r.get("status") or r.get("fix_street")):
+            out[r["file"]] = {"status": r.get("status", ""), "street": r.get("fix_street", ""),
+                              "from_street": r.get("fix_from_street", ""), "to_street": r.get("fix_to_street", ""),
+                              "note": r.get("review_note", "")}
+    return out
+
+
+def apply_override(st, d, o):
+    if not o:
+        return d
+    status = o.get("status", "").lower()
+    note = o.get("note", "")
+    if status == "exclude":
+        d.update(kind="excluded", cnns=[], intersections=[], confidence="none", method="override",
+                 notes=["excluded by review" + (f": {note}" if note else "")])
+        return d
+    if o.get("street") and o.get("from_street"):
+        r = mb.try_between(st, o["street"].lower(), o["from_street"], o.get("to_street") or o["from_street"], d["file"]) \
+            if o.get("to_street") else None
+        if r and r["segs"]:
+            d.update(street=r["street"], from_street=r["from_street"], to_street=r["to_street"],
+                     cnns=sorted(s["cnn"] for s in r["segs"]), intersections=nodes_of(r["segs"]), method="override")
+        else:
+            names = st.candidates(mb.norm_words(o["street"]))[0]
+            street = sorted(names)[0] if names else ""
+            c = st.match_cross(street, o["from_street"])[0] if street else None
+            nodes = sorted(st.intersection(street, c)) if c else []
+            if not nodes:
+                d["notes"] = d["notes"] + [f"override didn't match: {o['street']} / {o['from_street']} / {o.get('to_street', '')}"]
+                return d
+            touching = [s for s in st.by_street[street] + st.by_street[c] if s["fn"] in nodes or s["tn"] in nodes]
+            d.update(street=street, from_street=c, to_street="", intersections=nodes,
+                     cnns=sorted({s["cnn"] for s in touching}), method="override")
+        d["confidence"] = "confirmed" if status == "ok" else "high"
+        d["notes"] = ["corrected in review" + (f": {note}" if note else "")]
+        return d
+    if status == "ok":
+        d["confidence"] = "confirmed"
+        d["notes"] = ["confirmed in review" + (f": {note}" if note else "")]
+    return d
+
+
+REVIEW_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3, "confirmed": 4}
+MAP_URL = "https://civic-joy-fund.github.io/block-party/striping/#id="
+
+
+def write_review(path, diagrams):
+    cols = ["confidence", "id", "file", "street", "from_street", "to_street", "blocks", "method", "notes",
+            "current", "updated", "map_link", "pdf_url",
+            "status", "fix_street", "fix_from_street", "fix_to_street", "review_note"]
+    rows = [d for d in diagrams if d["kind"] in ("street", "excluded")]
+    rows.sort(key=lambda d: (REVIEW_ORDER.get(d["confidence"], 9), not d["current"], d["street"], d["file"].lower()))
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(cols)
+        for d in rows:
+            w.writerow([d["confidence"], d["id"] or "", d["file"], d["street"], d["from_street"], d["to_street"],
+                        len(d["cnns"]), d["method"], "; ".join(d["notes"]), "yes" if d["current"] else "older upload",
+                        d["modified"][:10], MAP_URL + urllib.parse.quote(d["id"] or d["preview"]) if d["cnns"] else "",
+                        d["url"], "", "", "", "", ""])
+
+
 def load_index(path_or_url):
     if re.match(r"https?://", path_or_url):
         with urllib.request.urlopen(path_or_url, timeout=60) as r:
@@ -227,14 +344,18 @@ def main():
     ap.add_argument("--data", default=os.path.join(ROOT, "data", "streets.json"))
     ap.add_argument("--out", default=os.path.join(ROOT, "data", "striping.json"))
     ap.add_argument("--changes", default=os.path.join(ROOT, "data", "striping_changes.json"))
+    ap.add_argument("--review", default=os.path.join(ROOT, "data", "striping_review.csv"))
+    ap.add_argument("--overrides", default=os.path.join(ROOT, "data", "striping_overrides.csv"))
     a = ap.parse_args()
+    overrides = load_overrides(a.overrides)
 
     index = load_index(a.index)
     files = [f for f in index if f["Path"].startswith(PREFIX) and f["Path"].lower().endswith(".pdf")]
     st = mb.Streets(*mb.load(a.data))
     diagrams = []
     for f in sorted(files, key=lambda f: f["Path"].lower()):
-        d = match(st, parse_name(f["Path"]))
+        d = parse_name(f["Path"])
+        d = apply_override(st, match(st, d), overrides.get(d["file"]))
         d["modified"] = f["LastModified"]
         d["size_kb"] = f["SizeKB"]
         d["url"] = BASE_URL + urllib.parse.quote(f["Path"])
@@ -279,6 +400,7 @@ def main():
     out = {"v": 1, "built": now, "source": a.index if a.index.startswith("http") else INDEX_URL,
            "diagrams": [{k: d[k] for k in keep} for d in diagrams]}
     json.dump(out, open(a.out, "w", encoding="utf-8"), separators=(",", ":"))
+    write_review(a.review, diagrams)
     from collections import Counter
     c = Counter(d["confidence"] for d in diagrams if d["kind"] == "street")
     print(f"wrote {a.out}: {len(diagrams)} PDFs ({sum(1 for d in diagrams if d['kind']=='street')} street drawings), "

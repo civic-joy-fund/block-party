@@ -337,9 +337,15 @@ def street_phrase(st, text):
         for i in range(len(words) - n, -1, -1):
             win = words[i:i + n]
             directional = win[0] in ("north", "south", "east", "west")
-            if (win[0] in stop and not (directional and n > 1)) or (len(win) == 1 and (win[0] in stop or win[0] in SUFFIXES or win[0] in places)):
+            if len(win) == 1 and (win[0] in stop or win[0] in SUFFIXES or win[0] in places):
                 continue
             hits, note = st.candidates(win)
+            # a window starting with a filler word ("front", "on") only counts if it's exactly a street name
+            # ("Front St", "South Van Ness Ave"), never as a fuzzy guess
+            if win[0] in stop and not directional and (note or not hits):
+                continue
+            if win[0] in stop and not (hits and not note):
+                continue
             if hits:
                 score = (0 if note else 1, n, i)
                 if best is None or score > best[0]:

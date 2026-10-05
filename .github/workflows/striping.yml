@@ -32,9 +32,11 @@ jobs:
         run: |
           git config user.name "striping-bot"
           git config user.email "actions@users.noreply.github.com"
-          for f in data/striping.json data/striping_changes.json striping/previews; do
+          for f in data/striping.json data/striping_review.csv data/striping_changes.json striping/previews; do
             if [ -e "$f" ]; then git add "$f"; fi
           done
           if git diff --cached --quiet; then echo "nothing changed"; else
-            git commit -m "Refresh striping diagrams $(date -u +%Y-%m-%d)" && git push
+            git commit -m "Refresh striping diagrams $(date -u +%Y-%m-%d)"
+            git pull --rebase || true
+            git push
           fi

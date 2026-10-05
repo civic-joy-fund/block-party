@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: s1 -->
+<!-- build: s3 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -84,13 +84,28 @@ h3 { font-size: 14px; margin: 16px 0 6px; }
 .sheets button:hover { border-color: #AEB6DA; }
 .sheets button[aria-current="true"] { border-color: var(--pink); background: #FFE8F0; }
 .sheets small { color: var(--ink-soft); }
-details.qa { margin-top: 20px; font-size: 13px; }
+.check { margin-top: 22px; border-top: 2px solid var(--line); padding-top: 4px; }
+.check-note { font-size: 13px; color: var(--ink-soft); margin: 0 0 6px; }
+.check-note a { color: var(--ink); font-weight: 600; }
+.stepper { background: #fff; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0 6px; font-size: 13.5px; }
+.stepper label { font-weight: 700; margin-right: 6px; }
+.stepper select { font: inherit; padding: 3px 6px; border-radius: 8px; border: 1.5px solid var(--line); }
+.stepper-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0 6px; }
+kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--paper); }
+details.qa { margin-top: 8px; font-size: 13px; }
+details.qa button { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 details.qa summary { cursor: pointer; font-weight: 700; }
 details.qa li { margin: 3px 0; }
 details.qa a { color: var(--ink); }
 .foot { margin-top: 18px; font-size: 12px; color: var(--ink-soft); }
 .foot a { color: inherit; }
 
+.zoom {
+  position: absolute; z-index: 15; inset: 16px; display: grid; place-items: center; pointer-events: none;
+  background: rgba(244,247,255,.94); border: 2px solid var(--ink); border-radius: 16px; padding: 14px;
+}
+.zoom img { max-width: 100%; max-height: calc(100% - 26px); object-fit: contain; background: #fff; box-shadow: 0 4px 18px rgba(30,35,64,.2); }
+.zoom p { margin: 6px 0 0; font-size: 13px; color: var(--ink-soft); }
 /* hover card that follows the mouse */
 .hovercard {
   position: absolute; z-index: 10; width: 290px; pointer-events: none;
@@ -104,6 +119,7 @@ details.qa a { color: var(--ink); }
 .toggle { display: flex; background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 3px; box-shadow: 0 3px 0 var(--ink); }
 .toggle button { border: 0; background: none; padding: 5px 13px; border-radius: 999px; font-weight: 700; font-size: 13.5px; cursor: pointer; }
 .toggle button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.map-ui { flex-wrap: wrap; right: 60px; }
 .legend {
   position: absolute; z-index: 5; left: 12px; bottom: 30px; background: rgba(255,255,255,.96); border: 2px solid var(--ink);
   border-radius: 12px; padding: 8px 11px; font-size: 12.5px; box-shadow: 0 3px 0 var(--ink);
@@ -122,8 +138,29 @@ details.qa a { color: var(--ink); }
       <input id="q" type="search" placeholder="Search a street or diagram ID, like Valencia or 8218" autocomplete="off" aria-label="Search diagrams" role="combobox" aria-expanded="false" aria-controls="qlist">
       <ul class="results-list" id="qlist" role="listbox" hidden></ul>
     </div>
-    <div id="detail"><div class="empty">Nothing picked yet. Streets in teal have a diagram; gray ones don't.</div></div>
-    <details class="qa" id="qa"><summary></summary><ul id="qa-list"></ul></details>
+    <div id="detail"><div class="empty">Nothing picked yet. Streets in teal have a diagram; gray ones don't. Diagrams that didn't match cleanly are listed under "Check matches" below.</div></div>
+    <section class="check" id="check">
+      <h3>Check matches</h3>
+      <p class="check-note">Each diagram is placed by reading its file name. These are the ones to look at.
+        <a href="../data/striping_review.csv" download>Download the review list (CSV)</a>: every drawing, worst matches first, with columns for your corrections.</p>
+      <div class="stepper">
+        <label for="rv-set">Step through</label>
+        <select id="rv-set">
+          <option value="low">Low confidence</option>
+          <option value="medium">Medium confidence</option>
+          <option value="lowmed">Low and medium</option>
+        </select>
+        <div class="stepper-row">
+          <button type="button" class="btn small" id="rv-prev" aria-label="Previous">‹ Prev</button>
+          <span id="rv-pos" aria-live="polite">Not started</span>
+          <button type="button" class="btn small" id="rv-next" aria-label="Next">Next ›</button>
+        </div>
+        <p class="check-note">Keys: <kbd>[</kbd> previous, <kbd>]</kbd> next. Your place is remembered on this computer.</p>
+      </div>
+      <details class="qa" id="qa-none"><summary></summary><ul></ul></details>
+      <details class="qa" id="qa-low"><summary></summary><ul></ul></details>
+      <details class="qa" id="qa-medium"><summary></summary><ul></ul></details>
+    </section>
     <p class="foot" id="foot"></p>
   </aside>
   <div class="map-wrap">
@@ -134,19 +171,30 @@ details.qa a { color: var(--ink); }
         <button type="button" id="bm-map" aria-pressed="true">Map</button>
         <button type="button" id="bm-sat" aria-pressed="false">Satellite</button>
       </div>
+      <div class="toggle" role="group" aria-label="Checking tools">
+        <button type="button" id="opt-labels" aria-pressed="false" title="Show each diagram's ID and file name (zoom in to see them)">Labels</button>
+        <button type="button" id="opt-quality" aria-pressed="false" title="Color streets by how sure the match from the file name is">Match quality</button>
+      </div>
     </div>
     <div class="legend">
       <div><svg viewBox="0 0 26 12"><line x1="3" y1="6" x2="23" y2="6" stroke="#FFC53D" stroke-width="9" stroke-linecap="round"/><line x1="3" y1="6" x2="23" y2="6" stroke="#FF3D7F" stroke-width="4.5" stroke-linecap="round"/></svg>Picked diagram</div>
       <div><svg viewBox="0 0 26 12"><line x1="3" y1="6" x2="23" y2="6" stroke="#6D4AF5" stroke-width="5" stroke-linecap="round"/></svg>Diagram under the mouse</div>
-      <div><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#0EA5C6" stroke-width="3"/></svg>Has a diagram</div>
+      <div id="lg-cov"><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#0EA5C6" stroke-width="3"/></svg>Has a diagram</div>
+      <div id="lg-quality" hidden>
+        <div><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#2F9E44" stroke-width="3"/></svg>Confirmed in review</div>
+        <div><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#0EA5C6" stroke-width="3"/></svg>Match: high</div>
+        <div><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#E8A100" stroke-width="3"/></svg>Match: medium</div>
+        <div><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#E8590C" stroke-width="3"/></svg>Match: low</div>
+      </div>
       <div><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#9AA1C3" stroke-width="1.6"/></svg>No diagram</div>
     </div>
     <div class="hovercard" id="hovercard" hidden></div>
+    <div class="zoom" id="zoom" hidden><img alt=""><p>Full detail: Open PDF</p></div>
   </div>
 </div>
 
 <script>
-const _BUILD_VERSION = 's1';
+const _BUILD_VERSION = 's3';
 const CONFIG = {
   PROTOMAPS_KEY: 'ffc24a4325d458ce',
   styleUrl: k => `https://api.protomaps.com/styles/v5/light/en.json?key=${k}`,
@@ -227,7 +275,12 @@ function initMap() {
 function addLayers() {
   map.addSource('sat', { type: 'raster', tiles: [CONFIG.SATELLITE_TILES], tileSize: 256, maxzoom: 19, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' });
   map.addLayer({ id: 'st-sat', type: 'raster', source: 'sat', layout: { visibility: 'none' } });
-  map.addSource('streets', { type: 'geojson', data: fc([...SEG.values()].map(s => lineF(s, { cov: BY_CNN.has(s.cnn) }))) });
+  const RANK = { confirmed: 4, high: 3, medium: 2, low: 1 };
+  map.addSource('streets', { type: 'geojson', data: fc([...SEG.values()].map(s => {
+    const list = BY_CNN.get(s.cnn) || [];
+    return lineF(s, { cov: list.length > 0, conf: Math.max(0, ...list.map(i => RANK[DIAG[i].confidence] || 0)) });
+  })) });
+  map.addSource('labels', { type: 'geojson', data: fc(DIAG.map(labelFeature).filter(Boolean)) });
   map.addSource('picked', { type: 'geojson', data: fc([]) });
   map.addSource('hover', { type: 'geojson', data: fc([]) });
   map.addSource('ends', { type: 'geojson', data: fc([]) });
@@ -236,6 +289,12 @@ function addLayers() {
     paint: { 'line-color': '#9AA1C3', 'line-opacity': 0.7, 'line-width': w(0.8, 2.5) } });
   map.addLayer({ id: 'st-cov', type: 'line', source: 'streets', filter: ['==', ['get', 'cov'], true],
     paint: { 'line-color': '#0EA5C6', 'line-width': w(1.6, 5) } });
+  // diagram ID + file name, for checking matches (off by default)
+  map.addLayer({ id: 'st-labels', type: 'symbol', source: 'labels', minzoom: 14, layout: {
+      visibility: 'none', 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Medium'], 'text-size': 11.5,
+      'text-max-width': 16, 'text-line-height': 1.15, 'text-padding': 4 },
+    paint: { 'text-color': ['match', ['get', 'conf'], 'confirmed', '#1F6E2F', 'high', '#075E72', 'medium', '#8A5A00', 'low', '#B23A00', '#1E2340'],
+      'text-halo-color': '#fff', 'text-halo-width': 2 } });
   map.addLayer({ id: 'st-hit', type: 'line', source: 'streets', paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 16 } });
   map.addLayer({ id: 'st-picked-casing', type: 'line', source: 'picked', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#FFC53D', 'line-width': w(7, 20) } });
   map.addLayer({ id: 'st-picked', type: 'line', source: 'picked', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#FF3D7F', 'line-width': w(3.5, 10) } });
@@ -254,8 +313,32 @@ function addLayers() {
   map.on('click', e => { if (!map.queryRenderedFeatures(e.point, { layers: ['st-hit'] }).length) unpick(); });
   map.on('rotate', () => { rotateAll(); });
   map.on('pitch', () => { rotateAll(); });
+  $('opt-labels').onclick = () => setLabels(!labelsOn);
+  $('opt-quality').onclick = () => setQuality(!qualityOn);
   $('bm-map').onclick = () => setSat(false);
   $('bm-sat').onclick = () => setSat(true);
+}
+// one label per diagram, at the middle block of its stretch
+function labelFeature(d) {
+  const segs = segsOf(d);
+  if (!segs.length) return null;
+  const s = segs[Math.floor(segs.length / 2)], c = s.coords[Math.floor(s.coords.length / 2)];
+  const m = s.coords.length === 2 ? [(s.coords[0][0] + s.coords[1][0]) / 2, (s.coords[0][1] + s.coords[1][1]) / 2] : c;
+  return { type: 'Feature', geometry: { type: 'Point', coordinates: m },
+    properties: { conf: d.confidence, label: `STR-${d.id}\n${d.file.replace(/\.pdf$/i, '').replace(/[_\s]*str[-_ ]?\s*\d+(\.\d+)?/i, ' ')}` } };
+}
+let labelsOn = false, qualityOn = false;
+function setLabels(on) {
+  labelsOn = on; $('opt-labels').setAttribute('aria-pressed', on);
+  map.setLayoutProperty('st-labels', 'visibility', on ? 'visible' : 'none');
+}
+// color covered streets by how sure the file-name match is
+function setQuality(on) {
+  qualityOn = on; $('opt-quality').setAttribute('aria-pressed', on);
+  map.setPaintProperty('st-cov', 'line-color', on
+    ? ['match', ['get', 'conf'], 4, '#2F9E44', 3, '#0EA5C6', 2, '#E8A100', 1, '#E8590C', '#9AA1C3'] : '#0EA5C6');
+  $('lg-cov').hidden = on;
+  $('lg-quality').hidden = !on;
 }
 function setSat(on) {
   satOn = on;
@@ -315,15 +398,13 @@ function wirePreview(root, d) {
   img.onload = () => rotate(box, img, d);
   if (img.complete && img.naturalWidth) rotate(box, img, d);
 }
-// Turn the drawing so the street runs the way it does on the map. Diagrams are assumed to read
-// left to right from the first cross street in the file name to the second.
+// Turn the drawing so the street runs the way it does on the map. The drawings put the first cross
+// street in the file name at the (top) left, so its left edge points at that end. No flipping to keep
+// the text upright: that put the wrong end first on many north-south streets.
 function angleFor(d) {
   if (!rotateOn || !d.ends || d.ends.length !== 2) return 0;
   const a = map.project(d.ends[0]), b = map.project(d.ends[1]);
-  let deg = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-  if (deg > 90) deg -= 180;          // keep the drawing right side up
-  if (deg <= -90) deg += 180;
-  return deg;
+  return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
 }
 function rotate(box, img, d) {
   const deg = angleFor(d), r = deg * Math.PI / 180;
@@ -362,14 +443,14 @@ function pick(d, { fit = true, cnn = null } = {}) {
 function unpick() {
   picked = null;
   map.getSource('picked').setData(fc([])); map.getSource('ends').setData(fc([]));
-  $('detail').innerHTML = '<div class="empty">Nothing picked yet. Streets in teal have a diagram; gray ones don\'t.</div>';
+  $('detail').innerHTML = '<div class="empty">Nothing picked yet. Streets in teal have a diagram; gray ones don\'t. Diagrams that didn\'t match cleanly are listed under "Check matches" below.</div>';
   history.replaceState(null, '', location.pathname);
 }
 function renderDetail(d, cnn) {
   const tags = [];
   if (d.series != null) tags.push(['', `Sheet ${d.series} of the ${pretty(d.street)} series`]);
   if (d.revision) tags.push(['', `Revision: ${d.revision}`]);
-  if (d.confidence !== 'high') tags.push(['warn', `Location ${d.confidence === 'none' ? 'unknown' : 'approximate'}${d.notes.length ? ': ' + d.notes[0] : ''}`]);
+  tags.push([d.confidence === 'high' || d.confidence === 'confirmed' ? '' : 'warn', `Match: ${d.confidence}${d.notes.length ? ' (' + d.notes.join('; ') + ')' : ''}`]);
   const others = cnn != null ? (BY_CNN.get(cnn) || []).map(i => DIAG[i]).filter(o => o !== d) : [];
   const sheets = sheetsOf(d);
   $('detail').innerHTML = `<div class="diagram">
@@ -391,6 +472,9 @@ function renderDetail(d, cnn) {
   ${others.length ? `<h3>This block is also in</h3><ul class="sheets">${others.map(sheetBtn).join('')}</ul>` : ''}
   ${sheets.length > 1 ? `<h3>Other sheets for ${esc(title(d))}</h3><ul class="sheets">${sheets.map(o => sheetBtn(o, o === d)).join('')}</ul>` : ''}`;
   wirePreview($('detail'), d);
+  const box = $('detail').querySelector('.preview');
+  box.onmouseenter = () => { const img = box.querySelector('img'); if (!img) return; const z = $('zoom'); z.querySelector('img').src = img.src; z.hidden = false; };
+  box.onmouseleave = () => { $('zoom').hidden = true; };
   $('rot').onchange = e => { rotateOn = e.target.checked; rotateAll(); };
   $('copy-link').onclick = () => navigator.clipboard.writeText(location.href);
   $('detail').querySelectorAll('[data-i]').forEach(b => b.onclick = () => pick(DIAG[+b.dataset.i]));
@@ -432,10 +516,52 @@ function setupSearch() {
 }
 
 /* ---------- QA list + footer ---------- */
+/* step through low / medium matches one at a time */
+function reviewList() {
+  const v = $('rv-set').value;
+  const want = v === 'lowmed' ? ['low', 'medium'] : [v];
+  return DIAG.filter(d => want.includes(d.confidence))
+    .sort((a, b) => a.street.localeCompare(b.street, 'en', { numeric: true }) || a.base.localeCompare(b.base, 'en', { numeric: true }) || a.sub - b.sub);
+}
+function store(k, v) { try { v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch {} }
+function stored(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function reviewGo(step) {
+  const list = reviewList();
+  if (!list.length) { $('rv-pos').textContent = 'Nothing to review'; return; }
+  const key = 'striping-review-' + $('rv-set').value;
+  let i = stored(key) == null ? -1 : +stored(key);
+  i = Math.min(list.length - 1, Math.max(0, i + step));
+  store(key, String(i));
+  $('rv-pos').textContent = `${i + 1} of ${list.length}`;
+  pick(list[i]);
+}
+function setupReview() {
+  $('rv-next').onclick = () => reviewGo(1);
+  $('rv-prev').onclick = () => reviewGo(-1);
+  $('rv-set').onchange = () => {
+    const i = stored('striping-review-' + $('rv-set').value);
+    $('rv-pos').textContent = i == null ? 'Not started' : `${+i + 1} of ${reviewList().length}`;
+  };
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, select, textarea')) return;
+    if (e.key === ']') reviewGo(1);
+    if (e.key === '[') reviewGo(-1);
+  });
+  $('rv-set').onchange();
+}
 function renderQA(raw) {
   const off = raw.diagrams.filter(d => d.kind === 'street' && d.current && !d.cnns.length);
-  $('qa').querySelector('summary').textContent = `Diagrams not on the map (${off.length})`;
-  $('qa-list').innerHTML = off.map(d => `<li><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.file)}</a><br><small>${esc(d.notes[0] || '')}</small></li>`).join('');
+  const fill = (id, label, list, mapped) => {
+    const el = $(id);
+    el.querySelector('summary').textContent = `${label} (${list.length})`;
+    el.querySelector('ul').innerHTML = list.map(d => `<li>${mapped
+      ? `<button type="button" data-i="${d.i}">${esc(d.file)}</button>`
+      : `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.file)}</a>`}<br><small>${esc(d.notes.join('; ') || '')}</small></li>`).join('');
+    el.querySelectorAll('[data-i]').forEach(b => b.onclick = () => pick(DIAG[+b.dataset.i]));
+  };
+  fill('qa-none', 'Not on the map', off, false);
+  fill('qa-low', 'Low confidence', DIAG.filter(d => d.confidence === 'low'), true);
+  fill('qa-medium', 'Medium confidence', DIAG.filter(d => d.confidence === 'medium'), true);
   const blocks = BY_CNN.size;
   $('foot').innerHTML = `${DIAG.length.toLocaleString()} diagrams covering ${blocks.toLocaleString()} blocks. Diagrams from <a href="https://streets-docs.apps.sfmta.com/?library=striping-diagrams&lang=en" target="_blank" rel="noopener">SFMTA's street document library</a>, checked ${esc(fmtDate(raw.built))}. Street data from DataSF.`;
 }
@@ -450,6 +576,7 @@ function renderQA(raw) {
   loadDiagrams(diagrams);
   setupSearch();
   renderQA(diagrams);
+  setupReview();
   await initMap();
   addLayers();
   $('loading').remove();

@@ -1,0 +1,34 @@
+# Render a few striping diagrams at several sizes, to compare on striping/samples.html.
+name: Striping preview samples
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: "Diagram IDs, separated by spaces"
+        default: "8218.2 7970.1 7728 7694"
+      widths:
+        description: "Widths in pixels (and 'full' for 300 dpi), separated by commas"
+        default: "1000,2000,3000,full"
+permissions:
+  contents: write
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils && pip install pillow
+      - run: python3 scripts/render_striping_previews.py --samples ${{ github.event.inputs.ids }} --widths "${{ github.event.inputs.widths }}"
+      - name: Commit samples
+        if: always()
+        run: |
+          git config user.name "striping-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git pull --rebase --autostash || true
+          if [ -d striping/samples ]; then git add striping/samples; fi
+          if git diff --cached --quiet; then echo "nothing new"; else
+            git commit -m "Striping preview samples" && git push
+          fi

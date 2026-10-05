@@ -17,9 +17,11 @@ Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 | `scripts/build_data.py` | Rebuilds `data/streets.json` from the CSVs |
 | `scripts/match_blocks.py` | Matches free-text block descriptions in a CSV to CNNs |
 | `striping/index.html` | Striping diagram map: hover a street to preview SFMTA's striping diagram, click to open the PDF |
-| `scripts/build_striping.py` | Reads SFMTA's file index, links each striping PDF to CNNs, writes `data/striping.json`, logs changes to `data/striping_changes.json` |
+| `scripts/build_striping.py` | Reads SFMTA's file index, links each striping PDF to CNNs, writes `data/striping.json` and `data/striping_review.csv`, applies `data/striping_overrides.csv`, logs changes to `data/striping_changes.json` |
 | `scripts/render_striping_previews.py` | Renders preview images of the PDFs into `striping/previews/` |
 | `.github/workflows/striping.yml` | Weekly job that runs the two scripts above and commits the results |
+| `.github/workflows/striping-samples.yml` | On-demand job that renders a few diagrams at several sizes |
+| `striping/samples.html` | Compares those sample sizes |
 
 The GeoJSON export isn't used; the CSV has the same geometry as WKT.
 
@@ -75,7 +77,21 @@ It understands "X between A and B", "NNN block of X", street addresses, intersec
 
 **Keeping it current:** the weekly GitHub Action rebuilds `data/striping.json`, renders previews only for new or changed PDFs, and appends what changed to `data/striping_changes.json` (added, removed, renamed with the same ID, re-uploaded with a new timestamp). After a few months that log shows whether SFMTA revises files in place, renames them (`r6`, `rev1`), or both. Run it by hand from the repo's Actions tab ("Refresh striping diagrams" → Run workflow); the first run renders all ~1,600 previews and takes a while.
 
-**Previews:** page 1 of each PDF as a 1000 px WebP (about 40–80 KB each, roughly 100 MB total). The map turns each preview so the street runs the same way as on the map, assuming the drawing reads left to right from the first cross street in the file name to the second.
+**Previews:** page 1 of each PDF as a 1000 px wide WebP (rendered at 110 dpi, then scaled down; about 40–80 KB each). The map turns each preview so the drawing's left edge points at the first cross street in the file name, which is how the drawings are laid out. PDFs aren't kept; anything needing more detail downloads them again.
+
+**Samples:** to compare larger sizes, run "Striping preview samples" from the Actions tab with a few IDs; results appear at `striping/samples.html`.
+
+**Checking matches:** the map's Labels and Match quality toggles show each diagram's ID and file name and how sure the match is. The panel's "Check matches" section lists the ones to look at and can step through them one at a time (`[` and `]`).
+
+`data/striping_review.csv` has every drawing, worst matches first, with a map link and PDF link for each. To correct one, fill in its review columns and copy those rows (keeping the header) into `data/striping_overrides.csv`:
+
+| Column | Use |
+|---|---|
+| `status` | `ok` = the match is right (shown as confirmed); `exclude` = not a street location, keep it off the map |
+| `fix_street`, `fix_from_street`, `fix_to_street` | Re-match with these names instead of the file name's; leave `fix_to_street` empty for an intersection |
+| `review_note` | Why; shown with the diagram |
+
+The next build (weekly, or run "Refresh striping diagrams" by hand) applies them. Overrides are matched by file name, so a renamed file needs its row updated.
 
 ## Running locally
 
