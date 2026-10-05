@@ -54,7 +54,7 @@ def main():
              or not os.path.exists(os.path.join(OUT, d["preview"] + ".webp")))]
     if a.limit:
         todo = todo[:a.limit]
-    print(f"{len(todo)} previews to render")
+    print(f"{len(todo)} previews to render", flush=True)
     done = failed = 0
     for i, d in enumerate(todo, 1):
         dest = os.path.join(OUT, d["preview"] + ".webp")
@@ -67,7 +67,7 @@ def main():
             print(f"  failed {d['file']}: {e}", file=sys.stderr)
         if i % 25 == 0:
             json.dump(manifest, open(man_path, "w"), indent=0)
-            print(f"  {i}/{len(todo)}")
+            print(f"  {i}/{len(todo)}", flush=True)
     # forget previews for files that are gone
     keep = {d["preview"] for d in data["diagrams"] if d["current"]}
     for k in [k for k in manifest if k not in keep]:
