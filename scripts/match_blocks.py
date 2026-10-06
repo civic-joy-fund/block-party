@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# sf-blocks 2026.10.06: master copy. Projects that use it (civic-joy-fund/block-party, burritojustice/sf-striping)
+# keep their own copies; change it here, bump VERSION, then copy it into them.
 """
 Match free-text block descriptions ("Sanchez between 27th St and Duncan", "100 block of Winfield",
 "300 Otsego Ave", "Haight and Masonic") to San Francisco street segments (CNNs).

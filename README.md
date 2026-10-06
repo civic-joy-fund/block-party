@@ -16,14 +16,8 @@ Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 | `data/sf_intersections.csv` | DataSF "Street Intersections" export (source, used for intersection lookups) |
 | `scripts/build_data.py` | Rebuilds `data/streets.json` from the CSVs |
 | `scripts/match_blocks.py` | Matches free-text block descriptions in a CSV to CNNs |
-| `striping/index.html` | Striping diagram map: hover a street to preview SFMTA's striping diagram, click to open the PDF |
-| `scripts/build_striping.py` | Reads SFMTA's file index, links each striping PDF to CNNs, writes `data/striping.json` and `data/striping_review.csv`, applies `data/striping_overrides.csv`, logs changes to `data/striping_changes.json` |
-| `scripts/render_striping_previews.py` | Renders preview images of the PDFs into `striping/previews/` |
-| `.github/workflows/striping.yml` | Weekly job that runs the two scripts above and commits the results |
-| `.github/workflows/striping-samples.yml` | On-demand job that renders a few diagrams at several sizes |
-| `striping/samples.html` | Compares those sample sizes |
 
-The GeoJSON export isn't used; the CSV has the same geometry as WKT.
+`data/streets.json`, `scripts/build_data.py`, and `scripts/match_blocks.py` are copies from [burritojustice/sf-blocks](https://github.com/burritojustice/sf-blocks), which keeps the master copy of the street data and matching logic (it's shared with other projects). Block Party doesn't depend on that repo to run or build; the copies are complete. Each script's first lines say which version it came from.
 
 ## Data sources
 
@@ -46,15 +40,19 @@ If the CSV is missing when you rebuild, `build_data.py` prints a warning and fal
 
 Not used yet: the `theOrder` column (the city's order of cross streets along each street), which could replace the distance calculation used to sort the cross street dropdowns.
 
+See also the [striping diagram map](https://burritojustice.github.io/sf-striping/), which uses the same street data.
+
 ## Updating the data
 
-Drop fresh exports into `data/` with the same names, then:
+The usual way: update sf-blocks (new DataSF exports, rebuild there), then copy its new `data/streets.json` and scripts here.
+
+Or directly here: drop fresh exports into `data/` with the same names, then:
 
 ```
 python3 scripts/build_data.py
 ```
 
-Standard library only. Commit the new `data/streets.json`.
+Standard library only. Commit the new `data/streets.json`. If you change `match_blocks.py` or `build_data.py` here, make the same change in sf-blocks so the projects stay in step.
 
 ## Matching free-text locations to CNNs
 
@@ -68,30 +66,6 @@ python3 scripts/match_blocks.py applications.csv --column "Location"   # a diffe
 Intersections come back as the intersection's own CNN with a POINT in `wkt` (`type` = intersection), with the touching blocks in `nearby_cnns`.
 
 It understands "X between A and B", "NNN block of X", street addresses, intersections ("Haight and Masonic"), short streets named on their own, and several blocks in one description. Cross streets are checked against the streets that actually meet the named street, so misspellings and missing suffixes usually resolve. Confidence is `high` (street and both cross streets found), `medium` (block number, address, short street, or a spelling fix), `low` (intersection only, one cross street, conflicting details), or `none` (with a reason in `notes`). Review everything below `high`.
-
-## Striping diagram map
-
-`striping/` (live at https://civic-joy-fund.github.io/block-party/striping/) maps SFMTA's striping diagram PDFs onto the blocks they cover. Links: `#id=8218.2`.
-
-**Where the data comes from:** SFMTA's document library (https://streets-docs.apps.sfmta.com/?library=striping-diagrams&lang=en) is built from a file index at https://safitwebapps.blob.core.windows.net/$web/webappsindex.json. `scripts/build_striping.py` keeps the `Striping Drawings/` PDFs, parses each file name (`2-Fulton St_str-7970.1 (42nd Ave to 34th Ave).pdf` → series 2, Fulton St, ID 7970.1, 42nd Ave to 34th Ave), and finds the blocks between the cross streets with the same matcher as `match_blocks.py`. Each diagram gets a confidence and notes; the ones it can't place are listed under "Diagrams not on the map." The `03_Detail STR` standard drawings aren't locations and are skipped. When several uploads share an ID, the newest is shown.
-
-**Keeping it current:** the weekly GitHub Action rebuilds `data/striping.json`, renders previews only for new or changed PDFs, and appends what changed to `data/striping_changes.json` (added, removed, renamed with the same ID, re-uploaded with a new timestamp). After a few months that log shows whether SFMTA revises files in place, renames them (`r6`, `rev1`), or both. Run it by hand from the repo's Actions tab ("Refresh striping diagrams" → Run workflow); the first run renders all ~1,600 previews and takes a while.
-
-**Previews:** page 1 of each PDF as a 1000 px wide WebP (rendered at 110 dpi, then scaled down; about 40–80 KB each). The map turns each preview so the drawing's left edge points at the first cross street in the file name, which is how the drawings are laid out. PDFs aren't kept; anything needing more detail downloads them again.
-
-**Samples:** to compare larger sizes, run "Striping preview samples" from the Actions tab with a few IDs; results appear at `striping/samples.html`.
-
-**Checking matches:** the map's Labels and Match quality toggles show each diagram's ID and file name and how sure the match is. The panel's "Check matches" section lists the ones to look at and can step through them one at a time (`[` and `]`).
-
-`data/striping_review.csv` has every drawing, worst matches first, with a map link and PDF link for each. To correct one, fill in its review columns and copy those rows (keeping the header) into `data/striping_overrides.csv`:
-
-| Column | Use |
-|---|---|
-| `status` | `ok` = the match is right (shown as confirmed); `exclude` = not a street location, keep it off the map |
-| `fix_street`, `fix_from_street`, `fix_to_street` | Re-match with these names instead of the file name's; leave `fix_to_street` empty for an intersection |
-| `review_note` | Why; shown with the diagram |
-
-The next build (weekly, or run "Refresh striping diagrams" by hand) applies them. Overrides are matched by file name, so a renamed file needs its row updated.
 
 ## Running locally
 

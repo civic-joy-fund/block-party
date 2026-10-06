@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# sf-blocks 2026.10.06: master copy. Projects that use it (civic-joy-fund/block-party, burritojustice/sf-striping)
+# keep their own copies; change it here, bump VERSION, then copy it into them.
 """
 Build the compact lookup file used by Block Party (index.html).
 

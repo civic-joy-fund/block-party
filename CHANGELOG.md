@@ -2,26 +2,10 @@
 
 All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
 
-## Striping map s3
-- `data/striping_review.csv` (written by `build_striping.py`): every drawing with match confidence, notes, a map link and PDF link, worst first, plus empty columns for corrections. Linked from the map's "Check matches" section.
-- Corrections: copy reviewed rows into `data/striping_overrides.csv` (same columns). `status` ok = confirmed (green under Match quality), exclude = off the map; `fix_street` / `fix_from_street` / `fix_to_street` re-match with corrected names.
-- "Step through" in Check matches: Prev / Next (or `[` / `]`) through low or medium matches, picking each on the map; your place is remembered.
-- Spelling fixes in file names can't add words to a street name ("Forest Hill" no longer becomes Forest Hill Path), except a missing middle initial.
-
-## Striping map s2
-- Preview rotation: the first cross street in the file name now always points to the drawing's left edge. The old "keep it upright" flip put the wrong end first on many north-south streets.
-- Hovering the picked diagram's preview shows it large and unrotated.
-- **Labels** toggle: each diagram's ID and file name on the map from zoom 14, colored by match confidence.
-- **Match quality** toggle: covered streets colored high (teal) / medium (amber) / low (orange).
-- "Check matches" section lists diagrams not on the map, low confidence, and medium confidence, with notes; mapped ones are clickable. Every picked diagram shows its match confidence.
-- File-name streets must name a real street on their own: "Forest Hill" no longer matches Hill St, and "Islais creek_41,798" no longer matches 41st Ave. Handles "3_", "TI_", "YBI_" prefixes, "Formerly", "Sgt", and two streets joined with "&".
-- `render_striping_previews.py --samples` and the "Striping preview samples" workflow render chosen diagrams at several sizes, viewable at `striping/samples.html`.
-- Weekly job shows progress live and commits partial results if rendering fails.
-
-## Striping map s1
-- New `striping/` page: streets with an SFMTA striping diagram in teal; hover shows the diagram's blocks and a preview turned to match the street; click picks it, with Open PDF, file details, other sheets in the set, and other diagrams covering that block. Search by street or ID; `#id=` links.
-- `scripts/build_striping.py`, `scripts/render_striping_previews.py`, weekly `.github/workflows/striping.yml`.
-- Matcher: streets with gaps (15th St between Florida and Alabama) now match by position along the street; directional names like "South Van Ness" and "West Portal" resolve; nearby duplicate intersection points are treated as one.
+## v22 (housekeeping)
+- The striping diagram map moved to its own repo, [burritojustice/sf-striping](https://github.com/burritojustice/sf-striping) (https://burritojustice.github.io/sf-striping/). Removed `striping/`, its data files, scripts, and workflows from this repo.
+- The street data and matching scripts now have a master copy in [burritojustice/sf-blocks](https://github.com/burritojustice/sf-blocks). This repo keeps its own copies (`data/streets.json`, `scripts/build_data.py`, `scripts/match_blocks.py`), marked with the version they came from, so Block Party still stands alone.
+- Removed `.github/workflows/` (only the striping jobs used it).
 
 ## v21
 - **Intersection mode.** The mode switch is now Cross streets / Intersection / Address. Pick a street and a cross street to select the intersection itself (its CNN is the city's intersection CNN). Streets that meet more than once get one card per intersection, tagged by side.
@@ -36,7 +20,8 @@ All changes are in `index.html` unless noted. `data/streets.json` and `scripts/b
 
 ## Matcher
 - `scripts/match_blocks.py` (new): matches free-text block descriptions in a CSV to CNNs, with street, cross streets, address ranges, WKT, confidence, method, and notes.
-- Intersections ("Haight and Masonic") now return the intersection CNN and a POINT, marked high when the streets meet once; the touching blocks go in `nearby_cnns`. New `type` column.
+- Intersections ("Haight and Masonic") return the intersection CNN and a POINT, marked high when the streets meet once; the touching blocks go in `nearby_cnns`. New `type` column.
+- Streets with gaps in the city data (15th St between Florida and Alabama) match by position along the street; directional names ("South Van Ness", "West Portal") and exact names like "Front St" resolve; intersection points a few meters apart are treated as one.
 
 
 ## v20
