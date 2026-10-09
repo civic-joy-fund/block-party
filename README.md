@@ -52,6 +52,12 @@ Or directly here: drop fresh exports into `data/` with the same names, then:
 python3 scripts/build_data.py
 ```
 
+To also enable the "flat to moderate" quiet-streets filter, build with slopes (downloads about 250 elevation tiles once, into `.tile-cache/`):
+
+```
+python3 scripts/build_data.py --slopes
+```
+
 Standard library only. Commit the new `data/streets.json`. If you change `match_blocks.py` or `build_data.py` here, make the same change in sf-blocks so the projects stay in step.
 
 ## Matching free-text locations to CNNs
@@ -86,6 +92,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 | `#cnn=21900000` | An intersection by its CNN (intersection and block CNNs never overlap) |
 | `&all=1` | Include retired, freeway, and paper streets |
 | `&minor=0` | Hide pedestrian paths and streets the city doesn't maintain |
+| `&quiet=dead,ped,unmaint,res,flat` | Find quiet streets: any of dead ends, pedestrian, not city-maintained; narrowed to residential and flat to moderate |
 | `&lang=es` | Interface language, once a translation exists |
 
 Street names in the hash are matched the same way as the search box (case-insensitive, "27th" or "twenty seventh").
@@ -94,6 +101,12 @@ Street names in the hash are matched the same way as the search box (case-insens
 
 - `CONFIG.PROTOMAPS_KEY`: swap for the production key.
 - `CONFIG.PUBLIC_LAYERS`: street layers shown by default. Anything not listed (freeways, paper streets, pseudo streets, private parking) and anything with `active=false` only appears with the "Include retired…" box checked. Links by CNN always load, whatever the layer.
+
+## Quiet streets, dead ends, one-way
+
+- **Dead end:** a block end where no other drivable street meets it; paper streets (often stairs or unbuilt sections) and pedestrian paths don't count as a way through. About 1,040 blocks.
+- **One-way:** `oneway` F = traffic from the `from` street to the `to` street, T = the reverse, B = both ways. The compass direction comes from the line's geometry.
+- **Find quiet streets:** the first group adds (any of dead ends, pedestrian streets, not city-maintained); the second group narrows (residential only = road class 5 or 0; flat to moderate = larger of average grade and 80% of the steepest quarter under 10%, needs `--slopes`). Rules live in `QUIET_SHOW` and `QUIET_NARROW` in `index.html`; future conditions (meets a busy street, bus route, protected bike lane) go in `QUIET_NARROW`.
 
 ## Terrain and slope
 

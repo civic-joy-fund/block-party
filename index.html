@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v21 -->
+<!-- build: v23 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -80,6 +80,18 @@ button, input { font: inherit; color: inherit; }
 .head { padding-top: calc(env(safe-area-inset-top, 0px) + 8px); position: relative; }
 .bunting { display: block; width: calc(100% + 56px); margin-inline: -28px; height: 64px; }
 @media (max-width: 860px) { .bunting { width: calc(100% + 36px); margin-inline: -18px; } }
+.quiet { margin: -6px 0 18px; }
+.quiet-btn { background: var(--sun); }
+.quiet-count { margin-left: 10px; font-size: 14px; color: var(--ink-soft); font-weight: 600; }
+.quiet-panel { margin-top: 12px; background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius-md); padding: 10px 12px 12px; box-shadow: 0 4px 0 var(--ink); display: grid; gap: 6px; }
+.quiet-group { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
+.qchip { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); border-radius: 12px; padding: 7px 10px; font-size: 15px; cursor: pointer; }
+.qchip:has(input:checked) { border-color: var(--grape); background: var(--grape-wash); }
+.qchip input { width: 18px; height: 18px; accent-color: var(--grape); flex: none; margin: 0; }
+.qchip b { font-weight: 600; }
+.qchip small { display: block; font-size: 12.5px; color: var(--ink-soft); }
+.qchip .n { margin-left: auto; font-size: 13px; color: var(--ink-soft); }
+.quiet-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
 .brand { display: flex; align-items: center; gap: 14px; margin: 6px 0 10px; }
 .brand .logo { width: clamp(52px, 8vw, 64px); height: auto; flex: none; }
 .brand h1 { margin: 0; }
@@ -241,6 +253,10 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
   font-size: 22px; line-height: 1; color: var(--ink-soft); cursor: pointer; margin-right: -6px;
 }
 .remove-btn:hover { background: var(--paper); color: var(--ink); }
+.copy-card { border: 1.5px solid var(--line); background: #fff; border-radius: 8px; width: 30px; height: 28px; cursor: pointer; font-size: 15px; color: var(--ink-soft); }
+.copy-card:hover { border-color: var(--ink); color: var(--ink); }
+.tag.good { background: #E6F7DD; border-color: #A8D98C; }
+.seg .facts, .seg .profile { cursor: text; }
 .cnn-chip {
   flex: none; border: 0; cursor: pointer;
   background: var(--ink); color: #fff; border-radius: 10px;
@@ -325,6 +341,21 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
       <h1 data-i18n="title">Block Party</h1>
     </div>
     <p class="intro" data-i18n="intro">Find the exact block for your street event, and get the city’s block ID (called a CNN) to include with your application.</p>
+    <div class="quiet">
+      <button type="button" class="btn quiet-btn" id="quiet-btn" aria-expanded="false" aria-controls="quiet-panel">✦ <span data-i18n="quietBtn">Find quiet streets</span></button>
+      <span class="quiet-count" id="quiet-count" aria-live="polite"></span>
+      <div class="quiet-panel" id="quiet-panel" hidden>
+        <p class="quiet-group" data-i18n="quietShow">Show any of these</p>
+        <label class="qchip"><input type="checkbox" data-quiet="dead"><b data-i18n="quiet_dead">Dead ends</b><span class="n" data-quiet-n="dead"></span></label>
+        <label class="qchip"><input type="checkbox" data-quiet="ped"><b data-i18n="quiet_ped">Pedestrian streets</b><span class="n" data-quiet-n="ped"></span></label>
+        <label class="qchip"><input type="checkbox" data-quiet="unmaint"><b data-i18n="quiet_unmaint">Not maintained by the city</b><span class="n" data-quiet-n="unmaint"></span></label>
+        <p class="quiet-group" data-i18n="quietNarrow">Narrow them down</p>
+        <label class="qchip"><input type="checkbox" data-quiet="res"><span><b data-i18n="quiet_res">Residential streets only</b><small data-i18n="quiet_resHint">Leaves out collectors, arterials, and bigger</small></span></label>
+        <label class="qchip" id="qchip-flat"><input type="checkbox" data-quiet="flat"><b data-i18n="quiet_flat">Flat to moderate (under 10%)</b></label>
+        <div class="quiet-foot"><span data-i18n="quietHint">Matches light up green. Tap one to add it to your list.</span>
+          <button type="button" class="btn small" id="quiet-clear" data-i18n="quietClear">Clear</button></div>
+      </div>
+    </div>
   </header>
 
   <section class="lookup" aria-label="Find a block">
@@ -425,6 +456,8 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
         <li><span class="sw"><svg viewBox="0 0 24 12"><line x1="3" y1="6" x2="21" y2="6" stroke="#6D4AF5" stroke-opacity=".55" stroke-width="5"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span data-i18n="lgStreet">Your whole street</span></li>
         <li><span class="sw"><svg viewBox="0 0 24 12"></svg><svg viewBox="0 0 16 16" class="dot"><circle cx="8" cy="8" r="4" fill="#fff" stroke="#1E2340" stroke-width="2"/></svg></span><span data-i18n="lgEnds">Corners</span></li>
         <li><span class="sw"><svg viewBox="0 0 24 12"><line class="lg-other" x1="3" y1="6" x2="21" y2="6" stroke="#7D86B5" stroke-opacity=".6" stroke-width="2"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span data-i18n="lgOther">Other streets</span></li>
+        <li id="lg-quiet" hidden><span class="sw"><svg viewBox="0 0 24 12"><line x1="3" y1="6" x2="21" y2="6" stroke="#4CAF2A" stroke-width="6" stroke-linecap="round"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span data-i18n="lgQuiet">Quiet street matches</span></li>
+        <li><span class="sw"><svg viewBox="0 0 24 12"><line x1="1" y1="6" x2="23" y2="6" stroke="#7D86B5" stroke-opacity=".6" stroke-width="2"/><path d="M15 6 l-6 -4 v8z" fill="#545B7F"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span data-i18n="lgOneway">One-way</span></li>
         <li id="lg-contours" hidden><span class="sw"><svg viewBox="0 0 24 12"><rect class="lg-contour-bg" width="24" height="12" rx="2" fill="#E2DFDA"/><path class="lg-contour" d="M1 8 C7 2 15 11 23 4" fill="none" stroke="#FFFFFF" stroke-width="1.5"/></svg><svg viewBox="0 0 16 16" class="dot"></svg></span><span id="lg-contours-text"></span></li>
       </ul>
       <p class="legend-hint" data-i18n="lgHint">Tap any street to add it.</p>
@@ -453,7 +486,7 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const _BUILD_VERSION = 'v21';
+const _BUILD_VERSION = 'v23';
 
 /* =====================================================================
    CONFIG
@@ -541,7 +574,17 @@ const I18N = {
     layer_PAPER: 'Paper street', layer_PAPER_FWYS: 'Paper freeway', layer_PAPER_WATER: 'Paper street (water)',
     layer_UPROW: 'Unaccepted right-of-way', layer_PSEUDO: 'Pseudo street', layer_PRIVATE_PARKING: 'Private parking',
     added: 'Added {name}', removed: 'Took off {name}',
-    deadEnd: 'Dead end', deadEndDir: 'Dead end ({dir})', midBlock: 'Mid-block',
+    deadEnd: 'Dead end', deadEndLower: 'dead end', deadEndDir: 'Dead end ({dir})', midBlock: 'Mid-block', deadEndTag: 'Dead end',
+    onewayDir: 'One-way {arrow} {dir}, {a} → {b}',
+    bound_north: 'northbound', bound_south: 'southbound', bound_east: 'eastbound', bound_west: 'westbound',
+    class1: 'Freeway', class2: 'Major street', class3: 'Arterial', class4: 'Collector', class5: 'Residential', class6: 'Freeway ramp',
+    copyCard: 'Copy this card’s details', copiedCard: 'Copied block details',
+    quietBtn: 'Find quiet streets', quietTitle: 'Quiet streets for a party', quietShow: 'Show any of these',
+    quietNarrow: 'Narrow them down', quiet_dead: 'Dead ends', quiet_ped: 'Pedestrian streets',
+    quiet_unmaint: 'Not maintained by the city', quiet_res: 'Residential streets only',
+    quiet_resHint: 'Leaves out collectors, arterials, and bigger', quiet_flat: 'Flat to moderate (under 10%)',
+    quietCount: '{n} blocks match', quietNone: 'Pick at least one in the first group', quietHint: 'Matches light up green. Tap one to add it to your list.',
+    quietClear: 'Clear', lgQuiet: 'Quiet street matches', lgOneway: 'One-way',
     north: 'north', south: 'south', east: 'east', west: 'west',
     dataNote: 'Street data from DataSF, Streets – Active and Retired, updated {date}.',
     typeMore: 'Keep typing to see more streets',
@@ -683,6 +726,7 @@ const Logic = (() => {
   }
   const OPPOSITE = { north: 'south', south: 'north', east: 'west', west: 'east' };
 
+  const NOT_DRIVABLE = new Set(['STREETS_PEDESTRI', 'PAPER', 'PAPER_FWYS', 'PAPER_WATER', 'PSEUDO']);
   /* ---- data model ---- */
   let DB = null;
   function load(raw) {
@@ -702,6 +746,9 @@ const Logic = (() => {
         nhood: S[r[F.nhood]], anhood: S[r[F.analysis_neighborhood]],
         sup: r[F.supervisor_district] || '', zip: S[r[F.zip_code]],
         oneway: S[r[F.oneway]], classcode: r[F.classcode], dropped: S[r[F.date_dropped]],
+        // precomputed by build_data.py --slopes (percent x10); null when the data doesn't have it
+        slopeAvg: F.slope_avg != null && r[F.slope_avg] >= 0 ? r[F.slope_avg] / 10 : null,
+        slopeMax: F.slope_max != null && r[F.slope_max] >= 0 ? r[F.slope_max] / 10 : null,
         coords, len: lineLength(coords),
         isPublic: !!(flags & 1) && CONFIG.PUBLIC_LAYERS.has(layer),
         // pedestrian paths and streets the city doesn't maintain (Presidio / Fort Mason roads excepted)
@@ -740,11 +787,51 @@ const Logic = (() => {
       if (!segsAtNode.has(n)) segsAtNode.set(n, []);
       segsAtNode.get(n).push(s);
     }
-    DB = { segs, byCnn, byStreet, nodes, segsAtNode, dataAsOf: raw.data_as_of, searchAll: false, includeMinor: true, index: [] };
+    // Dead ends: an end where no other drivable street meets this one. Paper streets (unbuilt or stair
+    // sections, like 20th St past Noe) and pedestrian paths don't count as a way through.
+    const drivable = s => s.active && !NOT_DRIVABLE.has(s.layer);
+    for (const s of segs) {
+      s.deadAt = '';
+      if (!drivable(s)) continue;
+      const open = n => (segsAtNode.get(n) || []).some(o => o !== s && drivable(o));
+      const f = !open(s.fn), tEnd = !open(s.tn);
+      s.deadAt = f && tEnd ? 'both' : f ? 'from' : tEnd ? 'to' : '';
+    }
+    // One-way: F = traffic runs from the "from" street to the "to" street, T = the reverse.
+    // owAlong: 1 if traffic runs the way the line is drawn, -1 if against it.
+    for (const s of segs) {
+      s.owAlong = 0; s.owDir = '';
+      if (s.oneway !== 'F' && s.oneway !== 'T') continue;
+      const fn = nodes.get(s.fn), a = s.coords[0], b = s.coords[s.coords.length - 1];
+      const drawnFromF = !fn || Math.hypot(a[0] - fn.x, a[1] - fn.y) <= Math.hypot(b[0] - fn.x, b[1] - fn.y);
+      s.owAlong = (s.oneway === 'F') === drawnFromF ? 1 : -1;
+      const [p, q] = s.owAlong === 1 ? [a, b] : [b, a];
+      s.owDir = compass((q[0] - p[0]) * COS_LAT, q[1] - p[1]);
+    }
+    DB = { segs, byCnn, byStreet, nodes, segsAtNode, dataAsOf: raw.data_as_of, searchAll: false, includeMinor: true, index: [],
+           hasSlopes: segs.some(s => s.slopeAvg != null) };
     rebuildIndex();
     return DB;
   }
   const eligible = s => DB.searchAll || (s.isPublic && (DB.includeMinor || !s.isMinor));
+  /* ---- quiet streets ---- */
+  // show any of these…
+  const QUIET_SHOW = {
+    dead: s => !!s.deadAt,
+    ped: s => s.layer === 'STREETS_PEDESTRI',
+    unmaint: s => !s.accepted,
+  };
+  // …then narrow them down (all that are on must pass)
+  const QUIET_NARROW = {
+    res: s => s.classcode === 5 || s.classcode === 0,     // leaves out collectors, arterials, major streets, freeways, ramps
+    flat: s => s.slopeAvg != null && Math.max(s.slopeAvg, 0.8 * s.slopeMax) < 10,
+  };
+  function quietMatch(s, on) {
+    if (!s.isPublic) return false;
+    const show = on.filter(k => QUIET_SHOW[k]), narrow = on.filter(k => QUIET_NARROW[k]);
+    if (!show.length) return false;
+    return show.some(k => QUIET_SHOW[k](s)) && narrow.every(k => QUIET_NARROW[k](s));
+  }
   function setSearchAll(v) { DB.searchAll = v; rebuildIndex(); }
   function setIncludeMinor(v) { DB.includeMinor = v; rebuildIndex(); }
   function rebuildIndex() {
@@ -945,6 +1032,7 @@ const Logic = (() => {
   }
 
   return {
+    quietMatch, QUIET_SHOW, QUIET_NARROW,
     load, prettyName, normTokens, searchStreets, resolveStreet, setSearchAll, setIncludeMinor, streetSegs,
     crossStreetsInOrder, crossStreetsFrom, segsTouching, segsBetween, segsAtAddress, addressSides,
     intersectionNodes, segsAroundNodes, contextSegs, eligible: s => eligible(s),
@@ -1428,6 +1516,29 @@ function legHTML(s, ints) {
     ${dir ? `<span class="tag">${esc(dir.charAt(0).toUpperCase() + dir.slice(1))}</span>` : ''}
   </li>`;
 }
+const ARROWS = { north: '↑', south: '↓', east: '→', west: '←' };
+const CLASS_KEYS = { 1: 'class1', 2: 'class2', 3: 'class3', 4: 'class4', 5: 'class5', 6: 'class6' };
+// "Church St to dead end" when an end has no other drivable street
+function betweenText(s) {
+  const a = s.deadAt === 'from' || s.deadAt === 'both' ? t('deadEndLower') : P(s.f);
+  const b = s.deadAt === 'to' || s.deadAt === 'both' ? t('deadEndLower') : P(s.t);
+  return s.deadAt === 'from' ? t('between', { a: b, b: a }) : t('between', { a, b });
+}
+// plain-text version of a card, for the ⧉ button
+function cardText(s) {
+  const sides = Logic.addressSides(s);
+  const p = Elev.peek(s.cnn);
+  const lines = [`${P(s.street)}, ${betweenText(s)}`, `CNN ${s.cnn}`];
+  if (sides.length) lines.push(`${t('addrLabel')}: ` + sides.map(x => `${t(x.parity)} ${x.from}–${x.to} (${t('sideOf', { side: t(x.side) })})`).join('; '));
+  const tags = [s.deadAt && t('deadEndTag'), s.owAlong && t('onewayDir', { arrow: '', dir: t('bound_' + s.owDir),
+    a: P(s.oneway === 'F' ? s.f : s.t), b: P(s.oneway === 'F' ? s.t : s.f) }).trim(), CLASS_KEYS[s.classcode] && t(CLASS_KEYS[s.classcode]),
+    !s.accepted && t('notAccepted')].filter(Boolean);
+  if (tags.length) lines.push(tags.join(', '));
+  lines.push(`${t('district')}: ${s.sup}`, `${t('zip')}: ${s.zip}`, `${t('nhood')}: ${s.nhood}`, `${t('length')}: ${t('ft', { n: fmtFt(s.len) })}`);
+  if (p) lines.push(`${t('slope')}: ${t('slopeAvg', { pct: Math.abs(p.net).toFixed(1) })}`);
+  lines.push(linkFor([s]));
+  return lines.join('\n');
+}
 function cardHTML(s) {
   const on = state.checked.has(s.cnn);
   const tags = [];
@@ -1435,7 +1546,10 @@ function cardHTML(s) {
   if (!s.active) tags.push(['warn', t('retired') + (s.dropped ? ` ${s.dropped}` : '')]);
   if (!s.accepted) tags.push(['', t('notAccepted')]);
   if (s.layer !== 'STREETS' && I18N.en['layer_' + s.layer]) tags.push(['', t('layer_' + s.layer)]);
-  if (s.oneway === 'F' || s.oneway === 'T') tags.push(['', t('oneway')]);
+  if (s.deadAt) tags.push(['good', t('deadEndTag')]);
+  if (s.owAlong) tags.push(['info', t('onewayDir', { arrow: ARROWS[s.owDir], dir: t('bound_' + s.owDir),
+    a: P(s.oneway === 'F' ? s.f : s.t), b: P(s.oneway === 'F' ? s.t : s.f) })]);
+  if (CLASS_KEYS[s.classcode]) tags.push(['', t(CLASS_KEYS[s.classcode])]);
   const sides = Logic.addressSides(s);
   const addr = sides.length
     ? sides.map(x => `${t(x.parity)} ${x.from}–${x.to}, ${t('sideOf', { side: t(x.side) })}`).join('<br>')
@@ -1444,9 +1558,10 @@ function cardHTML(s) {
     <input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(P(s.street))} ${esc(P(s.f))} – ${esc(P(s.t))}">
     <div class="seg-top">
       <div><div class="seg-name">${esc(P(s.street))}</div>
-      <div class="seg-between">${esc(t('between', { a: P(s.f), b: P(s.t) }))}</div></div>
+      <div class="seg-between">${esc(betweenText(s))}</div></div>
       <div class="seg-btns">
         <button type="button" class="cnn-chip" data-copy="${s.cnn}" title="Copy CNN"><small>CNN</small>${s.cnn}</button>
+        <button type="button" class="copy-card" data-copy-card="${s.cnn}" title="${esc(t('copyCard'))}" aria-label="${esc(t('copyCard'))}">⧉</button>
         <button type="button" class="remove-btn" data-remove="${s.cnn}" title="${esc(t('removeCard'))}" aria-label="${esc(t('removeCard'))}: ${esc(P(s.street))} ${s.cnn}">×</button>
       </div>
     </div>
@@ -1577,7 +1692,14 @@ function setupResultsEvents() {
     if (chip) { copyText(chip.dataset.copy, t('copiedCnn', { cnn: chip.dataset.copy })); return; }
     const rm = e.target.closest('[data-remove]');
     if (rm) { removeCard(+rm.dataset.remove); return; }
+    const cc = e.target.closest('[data-copy-card]');
+    if (cc) { const s = state.results.find(r => r.cnn === +cc.dataset.copyCard); if (s) copyText(cardText(s), t('copiedCard')); return; }
     const li = e.target.closest('.seg'); if (!li) return;
+    // selecting text, or clicking in the details or chart, shouldn't check or uncheck the card
+    if (e.target.tagName !== 'INPUT') {
+      if (String(window.getSelection && window.getSelection()).trim()) return;
+      if (e.target.closest('.facts, .profile, .tags')) return;
+    }
     const cnn = +li.dataset.cnn;
     if (e.target.tagName !== 'INPUT') { const cb = li.querySelector('input'); cb.checked = !cb.checked; }
     toggleChecked(cnn, li.querySelector('input').checked);
@@ -1631,6 +1753,9 @@ function record(s) {
     supervisor_district: s.sup, zip_code: s.zip,
     nhood: s.nhood, analysis_neighborhood: s.anhood,
     layer: s.layer, active: s.active, accepted: s.accepted,
+    road_class: CLASS_KEYS[s.classcode] ? I18N.en[CLASS_KEYS[s.classcode]] : 'Other',
+    oneway: s.oneway, oneway_direction: s.owDir ? s.owDir + 'bound' : '',
+    dead_end: s.deadAt ? (s.deadAt === 'both' ? 'both ends' : s.deadAt === 'from' ? s.f : s.t) : '',
     length_ft: fmtFt(s.len),
     ...elevFields(s),
     wkt: wktOf(s),
@@ -1662,6 +1787,8 @@ function writeHash() {
   else if (state.street) parts.push('street=' + encodeURIComponent(P(state.street).toLowerCase()).replace(/%20/g, '+'));
   if (Logic.db && Logic.db.searchAll) parts.push('all=1');
   if (Logic.db && !Logic.db.includeMinor) parts.push('minor=0');
+  const q = typeof quietOn === 'function' ? quietOn() : [];
+  if (q.length) parts.push('quiet=' + q.join(','));
   if (LANG !== 'en') parts.push('lang=' + LANG);
   const h = parts.length ? '#' + parts.join('&') : '';
   if (h !== location.hash) { writingHash = true; history.replaceState(null, '', baseUrl() + location.search + h); writingHash = false; }
@@ -1669,11 +1796,15 @@ function writeHash() {
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   const list = k => (p.get(k) || '').split(',').map(s => s.trim()).filter(Boolean);
-  return { cnn: list('cnn').map(Number).filter(Boolean), street: list('street'), all: p.get('all') === '1', minor: p.get('minor') !== '0', lang: p.get('lang') };
+  return { cnn: list('cnn').map(Number).filter(Boolean), street: list('street'), all: p.get('all') === '1', minor: p.get('minor') !== '0', lang: p.get('lang'), quiet: list('quiet') };
 }
 function applyHash() {
   const h = readHash();
   if (h.lang && I18N[h.lang]) { LANG = h.lang; applyI18n(); }
+  if (h.quiet.length) {
+    document.querySelectorAll('[data-quiet]').forEach(i => i.checked = h.quiet.includes(i.dataset.quiet));
+    $('quiet-panel').hidden = false; $('quiet-btn').setAttribute('aria-expanded', 'true');
+  }
   if (h.minor !== Logic.db.includeMinor) { $('include-minor').checked = h.minor; Logic.setIncludeMinor(h.minor); refreshMapFilter(); }
   if (h.all !== Logic.db.searchAll) { $('search-all').checked = h.all; Logic.setSearchAll(h.all); refreshMapFilter(); }
   if (h.cnn.length) {
@@ -1804,7 +1935,8 @@ function addMapLayers() {
   // Terrain stays on at every tilt, so there's no jump when tilting.
   map.setTerrain({ source: 'dem-terrain', exaggeration: CONFIG.TERRAIN_EXAGGERATION });
 
-  map.addSource('all', { type: 'geojson', data: fc(Logic.db.segs.map(s => segFeature(s, { active: s.active }))) });
+  map.addSource('all', { type: 'geojson', data: fc(Logic.db.segs.map(s => segFeature(s, { active: s.active, ow: s.owAlong }))) });
+  map.addSource('quiet', { type: 'geojson', data: EMPTY });
   map.addSource('all-mid', { type: 'geojson', data: fc(Logic.db.segs.map(s => midFeature(s))) });
   map.addSource('context-mid', { type: 'geojson', data: EMPTY });
   map.addSource('results-mid', { type: 'geojson', data: EMPTY });
@@ -1822,6 +1954,14 @@ function addMapLayers() {
 
   map.addLayer({ id: 'bp-all', type: 'line', source: 'all', minzoom: 13,
     paint: { 'line-color': '#7D86B5', 'line-opacity': 0.45, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 3] } });
+  // quiet street matches (green), under every selection layer
+  map.addLayer({ id: 'bp-quiet', type: 'line', source: 'quiet', layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#4CAF2A', 'line-opacity': 0.85, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 2, 14, 4, 18, 9] } });
+  // one-way arrows along the street, pointing the way traffic goes
+  map.addLayer({ id: 'bp-oneway', type: 'symbol', source: 'all', minzoom: 15, filter: ['!=', ['get', 'ow'], 0],
+    layout: { 'symbol-placement': 'line', 'symbol-spacing': 90, 'icon-image': 'ow-arrow', 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
+      'icon-rotate': ['case', ['==', ['get', 'ow'], -1], 180, 0], 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+    paint: { 'icon-opacity': 0.8 } });
   map.addLayer({ id: 'bp-all-hit', type: 'line', source: 'all', minzoom: 13,
     paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 18 } });
   map.addLayer({ id: 'bp-street', type: 'line', source: 'street',
@@ -2088,6 +2228,9 @@ function addIntIcons() {
     map.addImage(name, g.getImageData(0, 0, size * r, size * r), { pixelRatio: r });
   };
   const dot = (g, m, rad, fill) => { g.beginPath(); g.arc(m, m, rad, 0, Math.PI * 2); g.fillStyle = fill; g.fill(); };
+  // one-way arrow pointing along the line (east = the way the line is drawn)
+  make('ow-arrow', (g, m) => { g.beginPath(); g.moveTo(m + 7, m); g.lineTo(m - 5, m - 6); g.lineTo(m - 2, m); g.lineTo(m - 5, m + 6); g.closePath();
+    g.fillStyle = '#3B4070'; g.strokeStyle = '#FFFFFF'; g.lineWidth = 2; g.lineJoin = 'round'; g.stroke(); g.fill(); });
   make('int-selected', (g, m) => { dot(g, m, 13, '#FFC53D'); dot(g, m, 8, '#FF3D7F'); dot(g, m, 3, '#FFFFFF'); });
   make('int-preview', (g, m) => { dot(g, m, 11, '#FFFFFF'); dot(g, m, 8, '#6D4AF5'); });
   make('int-match', (g, m) => {
@@ -2115,10 +2258,36 @@ function refreshMapFilter() {
     : db.includeMinor ? ['==', ['get', 'pub'], true]
     : ['all', ['==', ['get', 'pub'], true], ['!=', ['get', 'minor'], true]];
   map.setFilter('bp-all', f);
-  map.setFilter('bp-all-hit', f);
+  const q = quietOn().length ? ['in', ['get', 'cnn'], ['literal', [...quietCnns]]] : null;
+  map.setFilter('bp-all-hit', f && q ? ['any', f, q] : f);
   map.setFilter('bp-all-label-3d', f);
   map.setFilter('bp-corners', f);
   map.setFilter('bp-corners-hit', f);
+}
+/* ---------- quiet streets ---------- */
+let quietCnns = new Set();
+const quietOn = () => [...document.querySelectorAll('[data-quiet]:checked')].map(i => i.dataset.quiet);
+function setupQuiet() {
+  const btn = $('quiet-btn'), panel = $('quiet-panel');
+  btn.onclick = () => { const open = panel.hidden; panel.hidden = !open; btn.setAttribute('aria-expanded', open); };
+  if (!Logic.db.hasSlopes) $('qchip-flat').hidden = true;      // needs slopes in streets.json (build_data.py --slopes)
+  const segs = Logic.db.segs;
+  for (const k of Object.keys(Logic.QUIET_SHOW)) {
+    const n = segs.filter(s => s.isPublic && Logic.QUIET_SHOW[k](s)).length;
+    const el = document.querySelector(`[data-quiet-n="${k}"]`); if (el) el.textContent = n.toLocaleString();
+  }
+  panel.addEventListener('change', e => { if (e.target.dataset.quiet) applyQuiet(); });
+  $('quiet-clear').onclick = () => { document.querySelectorAll('[data-quiet]').forEach(i => i.checked = false); applyQuiet(); };
+}
+function applyQuiet() {
+  const on = quietOn();
+  const hasShow = on.some(k => Logic.QUIET_SHOW[k]);
+  const matches = hasShow ? Logic.db.segs.filter(s => Logic.quietMatch(s, on)) : [];
+  quietCnns = new Set(matches.map(s => s.cnn));
+  $('quiet-count').textContent = !on.length ? '' : hasShow ? t('quietCount', { n: matches.length.toLocaleString() }) : t('quietNone');
+  $('lg-quiet').hidden = !matches.length;
+  if (mapReady) { map.getSource('quiet').setData(fc(matches.map(s => segFeature(s)))); refreshMapFilter(); }
+  writeHash();
 }
 function toggleFromMap(s) {
   if (!s) return;
@@ -2283,7 +2452,9 @@ function drawBunting() {
   await mapP;
   addMapLayers();
   $('map-loading').remove();
+  setupQuiet();
   applyHash();
+  applyQuiet();
   render();
 })();
 </script>

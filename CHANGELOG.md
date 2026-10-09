@@ -2,6 +2,16 @@
 
 All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
 
+## v23
+- **One-way streets:** cards show "One-way ↑ northbound, 18th St → 17th St" (from the `oneway` field: F = from street to to street, T = the reverse). Arrows along one-way streets on the map from zoom 15; new "One-way" row in the map key.
+- **Dead ends:** a block end with no other drivable street (paper streets and stairs don't count) reads "Church St to dead end", with a green "Dead end" pill.
+- **Road class** pill: Residential, Collector, Arterial, Major street, Freeway, Freeway ramp (none for class 0, which already has a private / paper / pedestrian pill).
+- **Copying text:** dragging to select text no longer checks or unchecks a card, and clicks in the details, chart, or pills don't toggle it. New ⧉ button copies the whole card as plain text.
+- **Find quiet streets** (under the intro): show any of dead ends, pedestrian streets, streets the city doesn't maintain; narrow to residential only (leaves out collectors, arterials, and bigger) and flat to moderate (under 10%). Matches light up green on the map with a count; tap one to add it. Links keep it as `&quiet=dead,res`. Matches stay clickable even when the Options hide minor streets.
+- The "flat to moderate" filter only appears when `streets.json` has slopes (`build_data.py --slopes`).
+- Exports add `road_class`, `oneway`, `oneway_direction`, and `dead_end` (the cross street at the dead end, or "both ends").
+- `scripts/build_data.py` updated from sf-blocks 2026.10.08 (optional `--slopes`).
+
 ## v22 (housekeeping)
 - The striping diagram map moved to its own repo, [burritojustice/sf-striping](https://github.com/burritojustice/sf-striping) (https://burritojustice.github.io/sf-striping/). Removed `striping/`, its data files, scripts, and workflows from this repo.
 - The street data and matching scripts now have a master copy in [burritojustice/sf-blocks](https://github.com/burritojustice/sf-blocks). This repo keeps its own copies (`data/streets.json`, `scripts/build_data.py`, `scripts/match_blocks.py`), marked with the version they came from, so Block Party still stands alone.
