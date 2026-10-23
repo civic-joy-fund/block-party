@@ -18,6 +18,7 @@ Single page, hosted on GitHub Pages: `index.html` + `data/streets.json`.
 | `scripts/match_blocks.py` | Matches free-text block descriptions in a CSV to CNNs |
 | `layers/` | Raw downloads for the map layers (Muni, bike network, schools, fire/police, health care) |
 | `data/layers/*.geojson` | Trimmed copies the map loads (~1.7 MB total, ~230 KB gzipped) |
+| `data/boundaries/` | Neighborhood boundary sets (Analysis, SF Find, Planning, Realtor, Who's on First), copied from civic-joy-fund/joiner; `build_data.py --areas` tags blocks with them |
 | `reference/` | Non-map reference lists, kept as published (SF Planning's neighborhood group notification list) |
 | `scripts/build_neighborhood_groups.py` | `reference/neighborhood-groups/` → `data/neighborhood_groups.json` |
 | `scripts/build_layers.py` | Rebuilds `data/layers/` from `layers/` |
@@ -56,8 +57,10 @@ The usual way: update sf-blocks (new DataSF exports, rebuild there), then copy i
 Or directly here: drop fresh exports into `data/` with the same names, then:
 
 ```
-python3 scripts/build_data.py
+python3 scripts/build_data.py --slopes --areas
 ```
+
+`--areas` tags each block with its neighborhoods from `data/boundaries/` (the card's Neighborhood row and the neighborhood groups use them).
 
 To also enable the "flat to moderate" quiet-streets filter, build with slopes (downloads about 250 elevation tiles once, into `.tile-cache/`):
 

@@ -2,8 +2,13 @@
 
 All changes are in `index.html` unless noted. `data/streets.json` and `scripts/build_data.py` are unchanged since v1.
 
+## v35
+- **Neighborhoods on cards:** one Neighborhood row shows the Analysis neighborhood; click it for every set the block falls in: Analysis, SF Find, Planning, Realtor, Who's on First, and the streets file's own (DPW) neighborhood. A block on a boundary lists both sides. Replaces the separate Neighborhood (which was the streets file's DPW/realtor-style name) and Analysis neighborhood rows. Exports add `hood_analysis`, `hood_sffind`, `hood_planning`, `hood_realtor`, `hood_wof`.
+- `data/streets.json` gains those `hood_*` fields (`build_data.py --areas`, from sf-blocks 2026.10.23), from boundary files in the new `data/boundaries/` (copied from civic-joy-fund/joiner). `planning_neighborhoods.geojson` moved there from `data/layers/`. Neighborhood groups use the block's `hood_planning`.
+- Lot outlines on checked blocks only show while the Parcels layer is on (Land use or Zoning).
+
 ## v34
-- **Neighborhood groups** on block and intersection cards: the groups on SF Planning's notification list for the block's Planning Neighborhood, behind a link that expands (organization, contacts, emails), with citywide groups in their own expandable list and a "Copy list" button. A block on a boundary lists both neighborhoods. Data: `data/neighborhood_groups.json`, built by `scripts/build_neighborhood_groups.py` from the copy in the new `reference/neighborhood-groups/` folder (list of September 25, 2026); boundaries `data/layers/planning_neighborhoods.geojson` (DataSF `mw29-m2za`, copied from civic-joy-fund/joiner). Exports add `planning_neighborhood` and `neighborhood_groups` (count).
+- **Neighborhood groups** on block and intersection cards: the groups on SF Planning's notification list for the block's Planning Neighborhood, behind a link that expands (organization, contacts, emails), with citywide groups in their own expandable list and a "Copy list" button. A block on a boundary lists both neighborhoods. Data: `data/neighborhood_groups.json`, built by `scripts/build_neighborhood_groups.py` from the copy in the new `reference/neighborhood-groups/` folder (list of September 25, 2026); boundaries `data/boundaries/planning_neighborhoods.geojson` (DataSF `mw29-m2za`, copied from civic-joy-fund/joiner). Exports add `planning_neighborhood` and `neighborhood_groups` (count).
 - **Zoning colors are now SF Planning's own**, from the Zoning Map's Zoning Districts layer (`PlanningData/MapServer/3`), matched by zoning code; the map key lists the families with one of their colors each.
 
 ## v33

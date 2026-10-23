@@ -10,7 +10,7 @@ only.
 Source: https://sfplanning.org/resource/neighborhood-group-organizations
 Each group lists the Planning Neighborhoods it wants to hear about ("NEIGHBORHOOD OF INTEREST", comma
 separated, sometimes misspelled). Those are the 37 neighborhoods of DataSF's Planning Neighborhood Groups
-Map (mw29-m2za), in data/layers/planning_neighborhoods.geojson; Block Party works out which of them a
+Map (mw29-m2za), in data/boundaries/planning_neighborhoods.geojson; Block Party works out which of them a
 block is in.
 
 The page only needs who the groups are, so the JSON keeps organization, contact name, email, and
@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'reference' / 'neighborhood-groups'
-HOODS_FILE = ROOT / 'data' / 'layers' / 'planning_neighborhoods.geojson'
+HOODS_FILE = ROOT / 'data' / 'boundaries' / 'planning_neighborhoods.geojson'
 OUT = ROOT / 'data' / 'neighborhood_groups.json'
 PAGE = 'https://sfplanning.org/resource/neighborhood-group-organizations'
 

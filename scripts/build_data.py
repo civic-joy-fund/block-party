@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copied from burritojustice/sf-blocks 2026.10.11. Make changes there, then copy the new version here.
+# Copied from burritojustice/sf-blocks 2026.10.23. Make changes there, then copy the new version here.
 """
 Build the compact lookup file used by Block Party (index.html).
 
@@ -18,6 +18,7 @@ Usage (from the repo root):
   python3 scripts/build_data.py
   python3 scripts/build_data.py --download    # refresh both CSVs from DataSF, then build
   python3 scripts/build_data.py --slopes      # also store each block's slope (downloads ~250 elevation tiles)
+  python3 scripts/build_data.py --slopes --areas   # also tag each block with the neighborhoods in data/boundaries/
   python3 scripts/build_data.py --streets path/to/streets.csv --intersections path/to/int.csv --out data/streets.json
 
 Standard library only; no pip installs needed.
@@ -76,6 +77,58 @@ def ymd(v):
         return v
     a, b, c = m.groups()
     return f"{a}-{b}-{c}" if len(a) == 4 else f"{c}-{a}-{b}"
+
+
+# --areas: neighborhood boundary files in data/boundaries/ (copied from civic-joy-fund/joiner, which
+# downloads them from DataSF) -> one field per set on every segment. A missing file is skipped.
+AREAS = [  # (field, file, name property, source)
+    ("hood_analysis", "analysis_neighborhoods.geojson", "nhood", "DataSF Analysis Neighborhoods p5b7-5n3h"),
+    ("hood_sffind", "sf_find_neighborhoods.geojson", "name", "DataSF SF Find Neighborhoods pty2-tcw4"),
+    ("hood_planning", "planning_neighborhoods.geojson", "neighborho", "DataSF Planning Neighborhood Groups mw29-m2za"),
+    ("hood_realtor", "realtor_neighborhoods.geojson", "nbrhood", "DataSF Realtor Neighborhoods 5gzd-g9ns"),
+    ("hood_wof", "wof_neighbourhoods.geojson", "name", "Who's on First neighbourhoods"),
+]
+
+
+class Areas:
+    """point-in-polygon lookup for one boundary file, with a bounding-box prefilter"""
+    def __init__(self, path, prop):
+        self.polys = []
+        for f in json.load(open(path, encoding="utf-8"))["features"]:
+            g = f.get("geometry")
+            if not g:
+                continue
+            parts = [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"]
+            xs = [x for p in parts for x, *_ in p[0]]; ys = [y for p in parts for _, y, *_ in p[0]]
+            self.polys.append((min(xs), min(ys), max(xs), max(ys), parts, str(f["properties"].get(prop) or "").strip()))
+
+    @staticmethod
+    def _in(x, y, ring):
+        inside, j = False, len(ring) - 1
+        for i in range(len(ring)):
+            xi, yi = ring[i][0], ring[i][1]; xj, yj = ring[j][0], ring[j][1]
+            if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+                inside = not inside
+            j = i
+        return inside
+
+    def at(self, x, y):
+        for x0, y0, x1, y1, parts, name in self.polys:
+            if x0 <= x <= x1 and y0 <= y <= y1 and any(self._in(x, y, p[0]) and not any(self._in(x, y, h) for h in p[1:]) for p in parts):
+                return name
+        return ""
+
+
+def along(pts, f):
+    """the point a fraction f of the way along a line (in degrees, close enough for picking samples)"""
+    seg = [math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(pts, pts[1:])]
+    d = sum(seg) * f
+    for (a, b), L in zip(zip(pts, pts[1:]), seg):
+        if d <= L or L == seg[-1]:
+            u = d / L if L else 0
+            return a[0] + u * (b[0] - a[0]), a[1] + u * (b[1] - a[1])
+        d -= L
+    return pts[-1]
 
 
 def rows(path):
@@ -231,6 +284,8 @@ def main():
     ap.add_argument("--out", default=os.path.join(ROOT, "data", "streets.json"))
     ap.add_argument("--download", action="store_true", help="download fresh copies of both CSVs from DataSF first")
     ap.add_argument("--slopes", action="store_true", help="add slope_avg and slope_max (percent x10) to every segment")
+    ap.add_argument("--areas", action="store_true", help="tag every segment with the neighborhoods in data/boundaries/ (see AREAS)")
+    ap.add_argument("--boundaries", default=os.path.join(ROOT, "data", "boundaries"))
     ap.add_argument("--tile-cache", default=os.path.join(ROOT, ".tile-cache"), help="where elevation tiles are kept")
     a = ap.parse_args()
 
@@ -289,10 +344,30 @@ def main():
             nodes.append([cnn, x, y, sorted(S(n) for n in names if n)])
 
     fields = list(SEG_FIELDS)
+    if a.areas:
+        # Each set is checked at 25%, 50%, and 75% along the block; a block on a boundary gets both
+        # names, most-covered first, joined with "; ".
+        for field, fname, prop, src in AREAS:
+            path = os.path.join(a.boundaries, fname)
+            if not os.path.exists(path):
+                print(f"  areas: no {fname}, skipping {field}", flush=True)
+                continue
+            ar = Areas(path, prop)
+            for row in segs:
+                g, pts, x, y = row[SEG_FIELDS.index("geom")], [], 0, 0
+                for j in range(0, len(g), 2):
+                    if j == 0: x, y = g[0], g[1]
+                    else: x, y = x + g[j], y + g[j + 1]
+                    pts.append((x / SCALE, y / SCALE))
+                names = [ar.at(*along(pts, f)) for f in (0.25, 0.5, 0.75)] if len(pts) > 1 else [ar.at(*pts[0])]
+                ranked = sorted({n for n in names if n}, key=lambda n: -names.count(n))
+                row.append(S("; ".join(ranked)))
+            fields.append(field)
+            print(f"  areas: {field} from {fname}", flush=True)
     if a.slopes:
         elev = Elevation(a.tile_cache)
         for i, row in enumerate(segs):
-            g, pts, x, y = row[-1], [], 0, 0
+            g, pts, x, y = row[SEG_FIELDS.index("geom")], [], 0, 0
             for j in range(0, len(g), 2):
                 if j == 0: x, y = g[0], g[1]
                 else: x, y = x + g[j], y + g[j + 1]

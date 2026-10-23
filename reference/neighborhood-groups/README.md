@@ -18,7 +18,7 @@ The script prints how many groups each neighborhood gets, and any neighborhood n
 
 ## How it's matched
 
-- **Neighborhoods:** "NEIGHBORHOOD OF INTEREST" is a comma-separated list of the 37 Planning Neighborhoods from DataSF's [Planning Neighborhood Groups Map](https://data.sf.gov/-/Planning-Neighborhood-Groups-Map/iacs-ws63) (`mw29-m2za`). Those boundaries are in `data/layers/planning_neighborhoods.geojson`, copied from civic-joy-fund/joiner.
+- **Neighborhoods:** "NEIGHBORHOOD OF INTEREST" is a comma-separated list of the 37 Planning Neighborhoods from DataSF's [Planning Neighborhood Groups Map](https://data.sf.gov/-/Planning-Neighborhood-Groups-Map/iacs-ws63) (`mw29-m2za`). Those boundaries are in `data/boundaries/planning_neighborhoods.geojson`, copied from civic-joy-fund/joiner.
 - **Spelling:** names are matched ignoring case, spaces and punctuation, and allowing a typo or two in longer names ("Downton/Civic Center", "Outer Susnet").
 - **Aliases:** "South Bayshore" counts as Bayview, "Upper Market" as Castro/Upper Market, and "Treasure Island" as Treasure Island/YBI.
 - **Citywide:** "Citywide" groups are listed separately on every card.

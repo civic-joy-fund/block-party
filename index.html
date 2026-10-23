@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: v34 -->
+<!-- build: v35 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -314,6 +314,13 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 .ng-city > summary { font-size: 13px; }
 .ng-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0 0; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
 .ng-foot a { color: inherit; }
+.hoods summary { cursor: pointer; list-style: none; }
+.hoods summary::-webkit-details-marker { display: none; }
+.hoods summary::after { content: ' ▾'; color: var(--ink-soft); font-size: 12px; }
+.hoods[open] summary::after { content: ' ▴'; }
+.hoods-table { border-collapse: collapse; margin-top: 4px; font-size: 13px; width: 100%; }
+.hoods-table td { padding: 1px 0; vertical-align: top; }
+.hoods-table td:first-child { color: var(--ink-soft); padding-right: 10px; white-space: nowrap; font-weight: 400; }
 .lu-note { display: block; margin-top: 3px; font-size: 11.5px; color: var(--ink-soft); font-weight: 400; }
 
 .notice {
@@ -552,7 +559,7 @@ h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const _BUILD_VERSION = 'v34';
+const _BUILD_VERSION = 'v35';
 
 /* =====================================================================
    CONFIG
@@ -584,6 +591,9 @@ const CONFIG = {
 /* =====================================================================
    I18N  (add es / zh by copying the en block)
    ===================================================================== */
+// neighborhood boundary sets on each block (streets.json hood_* fields, built from data/boundaries/)
+const HOOD_SETS = [['analysis', 'hsAnalysis'], ['sffind', 'hsSffind'], ['planning', 'hsPlanning'], ['realtor', 'hsRealtor'], ['wof', 'hsWof']];
+
 const I18N = {
   en: {
     title: 'Block Party',
@@ -629,7 +639,8 @@ const I18N = {
     subAll: '{n} of {total} checked.',
     between: '{a} to {b}',
     addrLabel: 'Addresses', district: 'Supervisor district', zip: 'ZIP code',
-    nhood: 'Neighborhood', anhood: 'Analysis neighborhood', layerLabel: 'Street type',
+    nhood: 'Neighborhood', anhood: 'Analysis neighborhood',
+    hsAnalysis: 'Analysis', hsSffind: 'SF Find', hsPlanning: 'Planning', hsRealtor: 'Realtor', hsWof: 'Who’s on First', hsStreets: 'Streets file (DPW)', layerLabel: 'Street type',
     noAddr: 'No addresses on this block',
     odd: 'Odd', even: 'Even',
     sideOf: '{side} side',
@@ -839,6 +850,8 @@ const Logic = (() => {
         fn: r[F.f_node_cnn], tn: r[F.t_node_cnn],
         layer, active: !!(flags & 1), accepted: !!(flags & 2),
         nhood: S[r[F.nhood]], anhood: S[r[F.analysis_neighborhood]],
+        // neighborhoods from each boundary set (build_data.py --areas); '' when the data doesn't have them
+        hoods: Object.fromEntries(HOOD_SETS.map(([k]) => [k, F['hood_' + k] != null ? S[r[F['hood_' + k]]] : ''])),
         sup: r[F.supervisor_district] || '', zip: S[r[F.zip_code]],
         oneway: S[r[F.oneway]], classcode: r[F.classcode], dropped: S[r[F.date_dropped]],
         // precomputed by build_data.py --slopes (percent x10); null when the data doesn't have it
@@ -1131,6 +1144,7 @@ const Logic = (() => {
       kind: 'int', cnn, x: n.x, y: n.y, coords: [[n.x, n.y]], len: 0,
       street: streets[0] || '', streets,
       sup: uniq('sup').join(', '), zip: uniq('zip').join(', '), nhood: uniq('nhood').join(', '), anhood: uniq('anhood').join(', '),
+      hoods: Object.fromEntries(HOOD_SETS.map(([k]) => [k, [...new Set(segs.flatMap(s => (s.hoods[k] || '').split('; ')).filter(Boolean))].join('; ')])),
       active: true, accepted: true, layer: 'INTERSECTION', partners: [], dividedSide: '', isPublic: true,
     };
   }
@@ -1617,10 +1631,11 @@ function render() {
   const isLeg = s => !isInt(s) && !state.checked.has(s.cnn) && (intNodes.has(s.fn) || intNodes.has(s.tn));
   const full = segs.filter(s => !isLeg(s));
   const legs = segs.filter(isLeg);
-  const openNg = new Set([...document.querySelectorAll('#seg-list details.ng[open]')].map(d => d.closest('[data-cnn]').dataset.cnn + (d.classList.contains('ng-city') ? 'c' : '')));
+  const dkey = d => d.closest('[data-cnn]').dataset.cnn + (d.classList.contains('ng-city') ? 'c' : d.classList.contains('hoods') ? 'h' : '');
+  const openNg = new Set([...document.querySelectorAll('#seg-list details.ng[open], #seg-list details.hoods[open]')].map(dkey));
   $('seg-list').innerHTML = full.map(s => isInt(s) ? intCardHTML(s) : cardHTML(s)).join('') +
     (legs.length ? `<li class="legs-head"><b>${esc(t('legsTitle'))}</b><span>${esc(t('legsHint'))}</span></li>` + legs.map(s => legHTML(s, ints)).join('') : '');
-  document.querySelectorAll('#seg-list details.ng').forEach(d => { if (openNg.has(d.closest('[data-cnn]').dataset.cnn + (d.classList.contains('ng-city') ? 'c' : ''))) d.open = true; });
+  document.querySelectorAll('#seg-list details.ng, #seg-list details.hoods').forEach(d => { if (openNg.has(dkey(d))) d.open = true; });
   $('clear-sel-bottom').hidden = !segs.length;
   hydrateElevation();
   // Muni and bike rows fill in once those files have loaded (the first time cards appear)
@@ -1652,8 +1667,7 @@ function intCardHTML(i) {
       <dt>${esc(t('streetsHere'))}</dt><dd>${esc(i.streets.map(P).join(', '))}</dd>
       <dt>${esc(t('district'))}</dt><dd>${esc(i.sup)}</dd>
       <dt>${esc(t('zip'))}</dt><dd>${esc(i.zip)}</dd>
-      <dt>${esc(t('nhood'))}</dt><dd>${esc(i.nhood)}</dd>
-      <dt>${esc(t('anhood'))}</dt><dd>${esc(i.anhood)}</dd>
+      <dt>${esc(t('nhood'))}</dt><dd>${hoodsHTML(i)}</dd>
       <dt>${esc(t('elevation'))}</dt><dd data-elev="${i.cnn}">${esc(elev)}</dd>
       ${transitFacts(i)}
       ${groupsFacts(i)}
@@ -1688,7 +1702,7 @@ function cardText(s) {
     a: P(s.oneway === 'F' ? s.f : s.t), b: P(s.oneway === 'F' ? s.t : s.f) }).trim(), CLASS_KEYS[s.classcode] && t(CLASS_KEYS[s.classcode]),
     !s.accepted && t('notAccepted')].filter(Boolean);
   if (tags.length) lines.push(tags.join(', '));
-  lines.push(`${t('district')}: ${s.sup}`, `${t('zip')}: ${s.zip}`, `${t('nhood')}: ${s.nhood}`, `${t('length')}: ${t('ft', { n: fmtFt(s.len) })}`);
+  lines.push(`${t('district')}: ${s.sup}`, `${t('zip')}: ${s.zip}`, `${t('nhood')}: ${HOOD_SETS.filter(([k]) => s.hoods && s.hoods[k]).map(([k, l]) => `${t(l)} ${s.hoods[k]}`).join('; ') || s.nhood}`, `${t('length')}: ${t('ft', { n: fmtFt(s.len) })}`);
   if (p) lines.push(`${t('slope')}: ${t('slopeAvg', { pct: Math.abs(p.net).toFixed(1) })}`);
   const m = Transit.muni(s), b = Transit.bike(s);
   if (m) lines.push(`${t('muniRow')}: ${m.length ? muniText(m) : t('noneHere')}`);
@@ -1736,8 +1750,7 @@ function cardHTML(s) {
       <dt>${esc(t('addrLabel'))}</dt><dd>${addr}</dd>
       <dt>${esc(t('district'))}</dt><dd>${esc(s.sup)}</dd>
       <dt>${esc(t('zip'))}</dt><dd>${esc(s.zip)}</dd>
-      <dt>${esc(t('nhood'))}</dt><dd>${esc(s.nhood)}</dd>
-      <dt>${esc(t('anhood'))}</dt><dd>${esc(s.anhood)}</dd>
+      <dt>${esc(t('nhood'))}</dt><dd>${hoodsHTML(s)}</dd>
       <dt>${esc(t('length'))}</dt><dd>${esc(t('ft', { n: fmtFt(s.len) }))}</dd>
       <dt>${esc(t('slope'))}</dt><dd data-slope="${s.cnn}">${slopeHTML(s)}</dd>
       ${transitFacts(s)}
@@ -1927,6 +1940,7 @@ function record(s) {
     return { ...blank, type: 'intersection', cnn: s.cnn, streetname: s.streets[0] || '',
       from_street: s.streets.slice(1).join(' & '), to_street: '',
       supervisor_district: s.sup, zip_code: s.zip, nhood: s.nhood, analysis_neighborhood: s.anhood,
+      ...Object.fromEntries(HOOD_SETS.map(([k]) => ['hood_' + k, (s.hoods && s.hoods[k]) || ''])),
       elev_from_ft: e == null ? '' : Math.round(e * M2FT), ...transitFields(s), wkt: wktOf(s), link: linkFor([s]) };
   }
   const sides = Logic.addressSides(s);
@@ -1938,6 +1952,7 @@ function record(s) {
     divided_side: s.partners.length ? s.dividedSide : '',
     supervisor_district: s.sup, zip_code: s.zip,
     nhood: s.nhood, analysis_neighborhood: s.anhood,
+    ...Object.fromEntries(HOOD_SETS.map(([k]) => ['hood_' + k, (s.hoods && s.hoods[k]) || ''])),
     layer: s.layer, active: s.active, accepted: s.accepted,
     road_class: CLASS_KEYS[s.classcode] ? I18N.en[CLASS_KEYS[s.classcode]] : 'Other',
     oneway: s.oneway, oneway_direction: s.owDir ? s.owDir + 'bound' : '',
@@ -2739,7 +2754,7 @@ const overlayLabelZoom = k => overlayMode[k] === 'always' ? 14 : CLOSE_ZOOM;
 function applyOverlay(k) {
   if (k === 'landuse' && map.getLayer('bp-lyr-landuse-fill')) {
     map.setPaintProperty('bp-lyr-landuse-fill', 'fill-color', overlayMode.landuse === 'zoning' ? zoningColor : landuseColor);
-    updateParcelLabels(); updateLanduseLegend();
+    updateParcelLabels(); updateLanduseLegend(); updateAdjLots();
   }
   for (const id of OVERLAYS[k].layers) {
     // point layers: icons show with the layer, names wait for the label zoom
@@ -3057,7 +3072,8 @@ function updateLanduseLegend() {
 // outline the lots counted on the checked blocks' cards
 function updateAdjLots() {
   if (!mapReady || !map.getLayer('bp-adj-lots')) return;
-  const lots = state.results.filter(s => !isInt(s) && state.checked.has(s.cnn)).flatMap(s => (Parcels.peek(s) || {}).lotIds || []);
+  // only while the Parcels layer (land use or zoning) is on
+  const lots = overlayMode.landuse === 'off' ? [] : state.results.filter(s => !isInt(s) && state.checked.has(s.cnn)).flatMap(s => (Parcels.peek(s) || {}).lotIds || []);
   const f = ['in', ['get', 'mapblklot'], ['literal', [...new Set(lots)]]];
   for (const id of ['bp-adj-lots', 'bp-adj-lots-casing']) {
     map.setFilter(id, f);
@@ -3229,7 +3245,7 @@ const landuseText = r => r ? r.uses.map(([k, n]) => `${landuseName(k)} ${n}`).jo
 /* ---------- Neighborhood groups that may be notified ----------
    SF Planning keeps a list of neighborhood groups and the Planning Neighborhoods each wants to hear
    about (data/neighborhood_groups.json, built from reference/neighborhood-groups/). A block's Planning
-   Neighborhood comes from the 37 boundaries in data/layers/planning_neighborhoods.geojson, tested at 25%,
+   Neighborhood comes from the 37 boundaries in data/boundaries/planning_neighborhoods.geojson, tested at 25%,
    50%, and 75% along the block, so a block on a boundary lists both sides; an intersection is tested at
    the corner and 15 m each way. */
 const Groups = (() => {
@@ -3250,7 +3266,7 @@ const Groups = (() => {
     get ready() { return ready; },
     get source() { return data && data.source; },
     ensure() {
-      return promise ||= Promise.all([fetch('data/layers/planning_neighborhoods.geojson').then(r => r.json()),
+      return promise ||= Promise.all([fetch('data/boundaries/planning_neighborhoods.geojson').then(r => r.json()),
         fetch('data/neighborhood_groups.json').then(r => r.json())]).then(([g, d]) => {
         polys = g.features.map(f => ({ name: f.properties.neighborho,
           parts: f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates }));
@@ -3265,7 +3281,9 @@ const Groups = (() => {
       const dx = 15 / 88000, dy = 15 / 110540;
       const pts = isInt(item) ? [[item.x, item.y], [item.x + dx, item.y], [item.x - dx, item.y], [item.x, item.y + dy], [item.x, item.y - dy]]
         : [0.25, 0.5, 0.75].map(f => along(item.coords, f));
-      const hoods = [...new Set(pts.map(([x, y]) => hoodAt(x, y)).filter(Boolean))];
+      // blocks carry their Planning neighborhoods from the build; corners and older data are looked up here
+      const hoods = !isInt(item) && item.hoods && item.hoods.planning ? item.hoods.planning.split('; ')
+        : [...new Set(pts.map(([x, y]) => hoodAt(x, y)).filter(Boolean))];
       const collect = names => {
         const byOrg = new Map();
         for (const n of names) for (const i of data.neighborhoods[n] || []) {
@@ -3300,6 +3318,15 @@ function groupsFacts(item) {
       <p class="ng-foot"><button type="button" class="btn small" data-copy-groups="${item.cnn}">${esc(t('ngCopy'))}</button>
         <span>${esc(t('ngSource', { date: (Groups.source || {}).list_date || '' }))} <a href="${esc((Groups.source || {}).page || '#')}" target="_blank" rel="noopener">${esc(t('ngSourceLink'))}</a></span></p>
     </details></dd>`;
+}
+// Analysis neighborhood by default; click for every set the block falls in
+function hoodsHTML(x) {
+  const main = (x.hoods && x.hoods.analysis) || x.anhood || '';
+  const rows = HOOD_SETS.filter(([k]) => x.hoods && x.hoods[k]).map(([k, label]) => [t(label), x.hoods[k]]);
+  if (x.nhood) rows.push([t('hsStreets'), x.nhood]);
+  if (!rows.length) return esc(main);
+  return `<details class="hoods"><summary>${esc(main.replace(/; /g, ' / '))}</summary><table class="hoods-table">${rows.map(([l, v]) =>
+    `<tr><td>${esc(l)}</td><td>${esc(v.replace(/; /g, ' / ').replace(/, /g, ' / '))}</td></tr>`).join('')}</table></details>`;
 }
 const nextToText = list => list.map(o => `${o.name} (${o.kind})`).join('; ');
 function transitFacts(item) {
